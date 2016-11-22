@@ -4,6 +4,9 @@
 #include <math.h>
 #include "main.h"
 
+#define ind0 (ii*nx + jj)
+#define ind1 (ii*(nx+1) + jj)
+
 int main(int argc, char** argv)
 {
   if(argc < 4)
@@ -34,7 +37,34 @@ int main(int argc, char** argv)
   solve(
       mesh.local_nx, mesh.local_ny, mesh.dt, mesh.niters, 
       state.x, state.r, state.p, state.rho, state.s_x, state.s_y, 
-      state.Ap, state.b, mesh.edgedx, mesh.edgedy);
+      state.Ap, state.e, mesh.edgedx, mesh.edgedy);
+}
+
+// This is currently duplicated from the hydro package
+void initialise_comms(
+    int argc, char** argv, Mesh* mesh)
+{
+  for(int ii = 0; ii < NNEIGHBOURS; ++ii) {
+    mesh->neighbours[ii] = EDGE;
+  }
+
+#ifdef MPI
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &mesh->rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mesh->nranks);
+
+  decompose_2d_cartesian(
+      mesh->rank,  mesh->nranks,  mesh->global_nx,  mesh->global_ny, 
+      mesh->neighbours, &mesh->local_nx, &mesh->local_ny, &mesh->x_off, &mesh->y_off);
+
+  // Add on the halo padding to the local mesh
+  mesh->local_nx += 2*PAD;
+  mesh->local_ny += 2*PAD;
+#endif 
+
+  if(mesh->rank == MASTER)
+    printf("Problem dimensions %dx%d for %d iterations.\n", 
+        mesh->global_nx, mesh->global_ny, mesh->niters);
 }
 
 // Initialises the mesh
@@ -51,44 +81,84 @@ void initialise_mesh(Mesh* mesh)
   for(int ii = 0; ii < mesh->local_ny; ++ii) {
     mesh->edgedy[ii] = mesh->width/mesh->global_ny;
   }
+
+  mesh->north_buffer_out 
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->east_buffer_out  
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+  mesh->south_buffer_out 
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->west_buffer_out  
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+  mesh->north_buffer_in  
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->east_buffer_in   
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+  mesh->south_buffer_in  
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->west_buffer_in   
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
 }
 
 // Initialises the state variables
 void initialise_state(const int nx, const int ny, State* state) 
 {
   state->Ap = (double*)malloc(sizeof(double)*nx*ny);
-  state->b = (double*)malloc(sizeof(double)*nx*ny);
+  state->e = (double*)malloc(sizeof(double)*nx*ny);
   state->r = (double*)malloc(sizeof(double)*nx*ny);
   state->x = (double*)malloc(sizeof(double)*nx*ny);
   state->p = (double*)malloc(sizeof(double)*nx*ny);
-  state->s_x = (double*)malloc(sizeof(double)*nx*ny);
-  state->s_y = (double*)malloc(sizeof(double)*nx*ny);
+  state->s_x = (double*)malloc(sizeof(double)*(nx+1)*(ny+1));
+  state->s_y = (double*)malloc(sizeof(double)*(nx+1)*(ny+1));
   state->rho = (double*)malloc(sizeof(double)*nx*ny);
 
 #pragma omp parallel for
   for(int ii = 0; ii < ny; ++ii) {
 #pragma omp simd
     for(int jj = 0; jj < nx; ++jj) {
-      const int ind = ii*nx + jj;
-      state->x[ind] = 0.0;
-      state->r[ind] = 0.0;
-      state->p[ind] = 0.0;
-      state->b[ind] = 0.0;
-      state->Ap[ind] = 0.0;
-      state->s_x[ind] = 0.0;
-      state->s_y[ind] = 0.0;
-      state->rho[ind] = 0.0;
+      state->x[ind0] = 0.0;
+      state->r[ind0] = 0.0;
+      state->p[ind0] = 0.0;
+      state->e[ind0] = 0.0;
+      state->Ap[ind0] = 0.0;
+      state->rho[ind0] = 0.0;
+    }
+  }
+#pragma omp parallel for
+  for(int ii = 0; ii < (ny+1); ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < (nx+1); ++jj) {
+      state->s_x[ind1] = 0.0;
+      state->s_y[ind1] = 0.0;
     }
   }
 
-  // Setting some simplistic dummy state
+  // Crooked pipe problem
 #pragma omp parallel for
   for(int ii = 0; ii < ny; ++ii) {
 #pragma omp simd
     for(int jj = 0; jj < nx; ++jj) {
-      const int ind = ii*nx + jj;
-      state->rho[ind] = 1.0;
-      state->b[ind] = 1.0;
+      if((ii > ny/8 && ii <= ny/4 && jj >= 0 && jj <= nx/2+nx/16) || 
+          (ii >= ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj <= nx/2+nx/16) ||
+          (ii >= 3*ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj < nx)) {
+        state->rho[ind0] = 1.0;
+      }
+      else {
+        state->rho[ind0] = 100.0;
+        state->e[ind0] = 0.0001;
+      }
+    }
+  }
+
+  write_to_visit(nx, ny, 0, 0, state->rho, "initial_crooked", 0, 0.0);
+
+  // Homogenous slab problem 
+#pragma omp parallel for
+  for(int ii = 0; ii < ny; ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < nx; ++jj) {
+      state->rho[ind0] = 1.0;
+      state->e[ind0] = 1.0;
     }
   }
 }
@@ -97,7 +167,7 @@ void initialise_state(const int nx, const int ny, State* state)
 void solve(
     const int nx, const int ny, const double dt, const int niters, double* x, 
     double* r, double* p, const double* rho, double* s_x, double* s_y, 
-    double* Ap, double* b, const int* edgedx, const int* edgedy)
+    double* Ap, double* e, const int* edgedx, const int* edgedy)
 {
   initialise_cg(nx, ny, dt, p, rho, s_x, s_y, Ap, edgedx, edgedy);
 
@@ -108,7 +178,7 @@ void solve(
 
   // Store initial residual
   double old_rr = 0.0;
-  store_residual(nx, ny, b, Ap, r, &old_rr);
+  store_residual(nx, ny, e, Ap, r, &old_rr);
 
 #ifdef DEBUG
   printf("\nresidual: \n");
@@ -157,31 +227,31 @@ void initialise_cg(
     const int nx, const int ny, const double dt, double* p, const double* rho, 
     double* s_x, double* s_y, double* Ap, const int* edgedx, const int* edgedy)
 {
-  // TODO: Calculating the coefficients with edge centered densities...
+  // https://inldigitallibrary.inl.gov/sti/3952796.pdf
 #pragma omp parallel for
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      const int ind = ii*nx+jj;
-      s_x[ind] = (dt*URANIUM_CONDUCTIVITY)/
-        ((0.5*(rho[ind-1]+rho[ind])*URANIUM_HEAT_CAPACITY)*(edgedx[jj]*edgedx[jj+1]));
-      s_y[ind] = (dt*URANIUM_CONDUCTIVITY)/
-        ((0.5*(rho[ind-nx]+rho[ind])*URANIUM_HEAT_CAPACITY)*(edgedy[ii]*edgedy[ii+1]));
+    for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
+      s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
+        (2.0*(rho[ind0]*rho[ind0-1])*(edgedx[ii]*edgedx[ii]));
+      s_y[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-ny]))/
+        (2.0*(rho[ind0]*rho[ind0-ny])*(edgedy[ii]*edgedy[ii]));
     }
   }
 
   // Initialise the guess at solution vector
+  // You don't need to use a matrix as the band matrix is fully predictable
+  // from the 5pt stencil
 #pragma omp parallel for
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      const int ind = ii*nx+jj;
-      Ap[ind] = 
-        - s_y[ind-nx]*p[ind-nx]
-        - s_x[ind-1]*p[ind-1] 
-        + (1.0+s_x[ind-1]+s_x[ind]+s_y[ind-nx]+s_y[ind])*p[ind]
-        - s_x[ind]*p[ind+1]
-        - s_y[ind]*p[ind+nx];
+      Ap[ind0] = 
+        - s_y[ind1-nx]*p[ind0-nx]
+        - s_x[ind1-1]*p[ind0-1] 
+        + (1.0+s_x[ind1-1]+s_x[ind1]+s_y[ind1-nx]+s_y[ind1])*p[ind0]
+        - s_x[ind1]*p[ind0+1]
+        - s_y[ind1]*p[ind0+nx];
     }
   }
 }
@@ -194,8 +264,7 @@ void update_conjugate(
   for(int ii = PAD; ii < ny - PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx - PAD; ++jj) {
-      const int ind = ii*nx + jj;
-      p[ind] = r[ind] + beta*p[ind];
+      p[ind0] = r[ind0] + beta*p[ind0];
     }
   }
 }
@@ -211,14 +280,13 @@ double calculate_alpha(
   for(int ii = PAD; ii < ny - PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx - PAD; ++jj) {
-      const int ind = ii*nx + jj;
-      Ap[ind] = 
-        - s_y[ind-nx]*p[ind-nx]
-        - s_x[ind-1]*p[ind-1] 
-        + (1.0+s_x[ind-1]+s_x[ind]+s_y[ind-nx]+s_y[ind])*p[ind]
-        - s_x[ind]*p[ind+1]
-        - s_y[ind]*p[ind+nx];
-      pAp += p[ind]*Ap[ind];
+      Ap[ind0] = 
+        - s_y[ind1-nx]*p[ind0-nx]
+        - s_x[ind1-1]*p[ind0-1] 
+        + (1.0+s_x[ind1-1]+s_x[ind1]+s_y[ind1-nx]+s_y[ind1])*p[ind0]
+        - s_x[ind1]*p[ind0+1]
+        - s_y[ind1]*p[ind0+nx];
+      pAp += p[ind0]*Ap[ind0];
     }
   }
 
@@ -236,10 +304,9 @@ double calculate_beta(
   for(int ii = PAD; ii < ny - PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx - PAD; ++jj) {
-      const int ind = ii*nx + jj;
-      x[ind] += alpha*p[ind];
-      r[ind] -= alpha*Ap[ind];
-      rr_temp += r[ind]*r[ind];
+      x[ind0] += alpha*p[ind0];
+      r[ind0] -= alpha*Ap[ind0];
+      rr_temp += r[ind0]*r[ind0];
     }
   }
 
@@ -249,7 +316,7 @@ double calculate_beta(
 
 // Update the residual at the current step
 void store_residual(
-    int nx, int ny, double* b, double* Ap, double* r, double* old_rr)
+    int nx, int ny, double* e, double* Ap, double* r, double* old_rr)
 {
   double rr_temp = 0.0;
 
@@ -257,9 +324,8 @@ void store_residual(
   for(int ii = 0; ii < ny; ++ii) {
 #pragma omp simd
     for(int jj = 0; jj < nx; ++jj) {
-      const int ind = ii*nx + jj;
-      r[ind] = b[ind] - Ap[ind];
-      rr_temp += r[ind]*r[ind];
+      r[ind0] = e[ind0] - Ap[ind0];
+      rr_temp += r[ind0]*r[ind0];
     }
   }
 
@@ -285,18 +351,6 @@ void print_vec(
       printf("%.3e ", a[ii*nx+jj]);
     }
     printf("\n");
-  }
-}
-
-// Stores a matrix in the provided filepath
-void store_matrix(int m, int n, double* A, const char* filepath)
-{
-  FILE* fp = fopen(filepath, "wb");
-
-  for(int ii = 0; ii < m; ++ii) {
-    for(int jj = 0; jj < n; ++jj) {
-      fprintf(fp, "%d %d %.6e\n", ii, jj, A[ii*n + jj]);
-    }
   }
 }
 

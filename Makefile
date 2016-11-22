@@ -11,6 +11,7 @@ MAPP_FLAGS	  = $(CFLAGS_$(COMPILER))
 MAPP_LDFLAGS  = 
 
 OBJS  = $(patsubst %.c, obj/$(KERNELS)/%.o, $(wildcard *.c))
+OBJS += $(patsubst %.c, obj/$(KERNELS)/%.o, $(wildcard ../*.c))
 
 hot: make_build_dir $(OBJS) Makefile
 	$(MAPP_LINKER) $(MAPP_FLAGS) $(OBJS) $(MAPP_LDFLAGS) -o hot.exe
@@ -24,5 +25,5 @@ make_build_dir:
 	@mkdir -p obj/$(KERNELS)
 
 clean:
-	rm -rf obj/* hot
+	rm -rf obj/* hot.exe *.vtk
 
