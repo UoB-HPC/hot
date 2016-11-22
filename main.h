@@ -2,6 +2,9 @@
 
 #define MASTER 0
 #define PAD 2
+#define WIDTH 10.0
+#define HEIGHT 10.0
+#define MAX_DT 0.04
 #define URANIUM_CONDUCTIVITY 27.5
 #define URANIUM_HEAT_CAPACITY 117.2304
 
@@ -21,8 +24,8 @@ typedef struct
   int width;
   int height;
 
-  int* celldx;
-  int* celldy;
+  int* edgedx;
+  int* edgedy;
 
   double dt;
 

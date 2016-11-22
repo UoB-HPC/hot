@@ -18,8 +18,9 @@ int main(int argc, char** argv)
   mesh.global_ny = atoi(argv[2]);
   mesh.local_nx = atoi(argv[1]) + 2*PAD;
   mesh.local_ny = atoi(argv[2]) + 2*PAD;
-  mesh.width = 10.0;
-  mesh.height = 10.0;
+  mesh.width = WIDTH;
+  mesh.height = HEIGHT;
+  mesh.dt = MAX_DT;
   mesh.rank = MASTER;
   mesh.nranks = 1;
   mesh.niters = atoi(argv[3]);
@@ -33,19 +34,22 @@ int main(int argc, char** argv)
   solve(
       mesh.local_nx, mesh.local_ny, mesh.dt, mesh.niters, 
       state.x, state.r, state.p, state.rho, state.s_x, state.s_y, 
-      state.Ap, state.b, mesh.celldx, mesh.celldy);
+      state.Ap, state.b, mesh.edgedx, mesh.edgedy);
 }
 
 // Initialises the mesh
 void initialise_mesh(Mesh* mesh) 
 {
+  mesh->edgedx = (int*)malloc(sizeof(int)*mesh->local_nx);
+  mesh->edgedy = (int*)malloc(sizeof(int)*mesh->local_ny);
+
 #pragma omp parallel for
   for(int ii = 0; ii < mesh->local_nx; ++ii) {
-    mesh->celldx[ii] = mesh->width/mesh->global_nx;
+    mesh->edgedx[ii] = mesh->width/mesh->global_nx;
   }
 #pragma omp parallel for
   for(int ii = 0; ii < mesh->local_ny; ++ii) {
-    mesh->celldy[ii] = mesh->width/mesh->global_ny;
+    mesh->edgedy[ii] = mesh->width/mesh->global_ny;
   }
 }
 
@@ -76,15 +80,26 @@ void initialise_state(const int nx, const int ny, State* state)
       state->rho[ind] = 0.0;
     }
   }
+
+  // Setting some simplistic dummy state
+#pragma omp parallel for
+  for(int ii = 0; ii < ny; ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < nx; ++jj) {
+      const int ind = ii*nx + jj;
+      state->rho[ind] = 1.0;
+      state->b[ind] = 1.0;
+    }
+  }
 }
 
 // Performs the CG solve
 void solve(
     const int nx, const int ny, const double dt, const int niters, double* x, 
     double* r, double* p, const double* rho, double* s_x, double* s_y, 
-    double* Ap, double* b, const int* celldx, const int* celldy)
+    double* Ap, double* b, const int* edgedx, const int* edgedy)
 {
-  initialise_cg(nx, ny, dt, p, rho, s_x, s_y, Ap, celldx, celldy);
+  initialise_cg(nx, ny, dt, p, rho, s_x, s_y, Ap, edgedx, edgedy);
 
 #ifdef DEBUG
   printf("\nVector Ax initial: \n");
@@ -140,7 +155,7 @@ void solve(
 // Initialises the CG solver
 void initialise_cg(
     const int nx, const int ny, const double dt, double* p, const double* rho, 
-    double* s_x, double* s_y, double* Ap, const int* celldx, const int* celldy)
+    double* s_x, double* s_y, double* Ap, const int* edgedx, const int* edgedy)
 {
   // TODO: Calculating the coefficients with edge centered densities...
 #pragma omp parallel for
@@ -149,9 +164,9 @@ void initialise_cg(
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       const int ind = ii*nx+jj;
       s_x[ind] = (dt*URANIUM_CONDUCTIVITY)/
-        ((0.5*(rho[ind-1]+rho[ind])*URANIUM_HEAT_CAPACITY)*(celldx[jj]*celldx[jj]));
+        ((0.5*(rho[ind-1]+rho[ind])*URANIUM_HEAT_CAPACITY)*(edgedx[jj]*edgedx[jj+1]));
       s_y[ind] = (dt*URANIUM_CONDUCTIVITY)/
-        ((0.5*(rho[ind-nx]+rho[ind])*URANIUM_HEAT_CAPACITY)*(celldy[ii]*celldy[ii]));
+        ((0.5*(rho[ind-nx]+rho[ind])*URANIUM_HEAT_CAPACITY)*(edgedy[ii]*edgedy[ii+1]));
     }
   }
 
