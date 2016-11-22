@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "main.h"
 
 int main(int argc, char** argv)
@@ -17,6 +18,8 @@ int main(int argc, char** argv)
   mesh.global_ny = atoi(argv[2]);
   mesh.local_nx = atoi(argv[1]) + 2*PAD;
   mesh.local_ny = atoi(argv[2]) + 2*PAD;
+  mesh.width = 10.0;
+  mesh.height = 10.0;
   mesh.rank = MASTER;
   mesh.nranks = 1;
   mesh.niters = atoi(argv[3]);
@@ -27,45 +30,61 @@ int main(int argc, char** argv)
   // Fetch the user's parameters
   printf("Using the CG solver\n");
 
+  solve(
+      mesh.local_nx, mesh.local_ny, mesh.dt, mesh.niters, 
+      state.x, state.r, state.p, state.rho, state.s_x, state.s_y, 
+      state.Ap, state.b, mesh.celldx, mesh.celldy);
 }
 
 // Initialises the mesh
-static inline void initialise_mesh(Mesh* mesh) {
-
+void initialise_mesh(Mesh* mesh) 
+{
+#pragma omp parallel for
+  for(int ii = 0; ii < mesh->local_nx; ++ii) {
+    mesh->celldx[ii] = mesh->width/mesh->global_nx;
+  }
+#pragma omp parallel for
+  for(int ii = 0; ii < mesh->local_ny; ++ii) {
+    mesh->celldy[ii] = mesh->width/mesh->global_ny;
+  }
 }
 
 // Initialises the state variables
-static inline void initialise_state(const int nx, const int ny, State* state) {
+void initialise_state(const int nx, const int ny, State* state) 
+{
   state->Ap = (double*)malloc(sizeof(double)*nx*ny);
   state->b = (double*)malloc(sizeof(double)*nx*ny);
   state->r = (double*)malloc(sizeof(double)*nx*ny);
   state->x = (double*)malloc(sizeof(double)*nx*ny);
   state->p = (double*)malloc(sizeof(double)*nx*ny);
+  state->s_x = (double*)malloc(sizeof(double)*nx*ny);
+  state->s_y = (double*)malloc(sizeof(double)*nx*ny);
+  state->rho = (double*)malloc(sizeof(double)*nx*ny);
 
 #pragma omp parallel for
   for(int ii = 0; ii < ny; ++ii) {
+#pragma omp simd
     for(int jj = 0; jj < nx; ++jj) {
-      const int index = ii*nx + jj;
-      state->x[index] = 0.0;
-      state->r[index] = 0.0;
-      state->p[index] = 0.0;
-      state->b[index] = 0.0;
-      state->Ap[index] = 0.0;
+      const int ind = ii*nx + jj;
+      state->x[ind] = 0.0;
+      state->r[ind] = 0.0;
+      state->p[ind] = 0.0;
+      state->b[ind] = 0.0;
+      state->Ap[ind] = 0.0;
+      state->s_x[ind] = 0.0;
+      state->s_y[ind] = 0.0;
+      state->rho[ind] = 0.0;
     }
   }
 }
 
-// Performs the CG solve for the initialise problem
-void solve(const int nx, const int ny, double* x, double* r, double* A, double* b, double* p)
+// Performs the CG solve
+void solve(
+    const int nx, const int ny, const double dt, const int niters, double* x, 
+    double* r, double* p, const double* rho, double* s_x, double* s_y, 
+    double* Ap, double* b, const int* celldx, const int* celldy)
 {
-  // Initialise the guess at solution vector
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
-  for(int jj = PAD; jj < nx-PAD; ++jj) {
-    //Ap[ii] = // A by x
-    const int index = ii*nx+jj;
-    Ap[index] = A[index]
-  }
-  }
+  initialise_cg(nx, ny, dt, p, rho, s_x, s_y, Ap, celldx, celldy);
 
 #ifdef DEBUG
   printf("\nVector Ax initial: \n");
@@ -84,19 +103,15 @@ void solve(const int nx, const int ny, double* x, double* r, double* A, double* 
   // Store initial conjugate
   copy_vec(nx, ny, r, p);
 
-  for(int ii = 0; ii < max_iters; ++ii)
-  {
-    double alpha = calculate_alpha(
-        nx, ny, halo, A.get_mat(), old_rr, p, Ap); 
+  for(int ii = 0; ii < niters; ++ii) {
+    double alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap); 
 
 #ifdef DEBUG
     printf("alpha: %.12e\n", alpha);
 #endif
 
     double new_rr = 0.0;
-    double beta = calculate_beta(
-        nx, ny, halo, alpha, old_rr, 
-        x, p, r, Ap, &new_rr);
+    double beta = calculate_beta(nx, ny, alpha, old_rr, x, p, r, Ap, &new_rr);
 
 #ifdef DEBUG
     printf("beta: %.12e\n", beta);
@@ -108,7 +123,7 @@ void solve(const int nx, const int ny, double* x, double* r, double* A, double* 
       break;
     }
 
-    update_conjugate(nx, ny, halo, beta, p, r);
+    update_conjugate(nx, ny, beta, p, r);
 
     // Store the old squared residual
     old_rr = new_rr;
@@ -122,34 +137,73 @@ void solve(const int nx, const int ny, double* x, double* r, double* A, double* 
   print_vec(nx, ny, x);
 }
 
+// Initialises the CG solver
+void initialise_cg(
+    const int nx, const int ny, const double dt, double* p, const double* rho, 
+    double* s_x, double* s_y, double* Ap, const int* celldx, const int* celldy)
+{
+  // TODO: Calculating the coefficients with edge centered densities...
+#pragma omp parallel for
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+#pragma omp simd
+    for(int jj = PAD; jj < nx-PAD; ++jj) {
+      const int ind = ii*nx+jj;
+      s_x[ind] = (dt*URANIUM_CONDUCTIVITY)/
+        ((0.5*(rho[ind-1]+rho[ind])*URANIUM_HEAT_CAPACITY)*(celldx[jj]*celldx[jj]));
+      s_y[ind] = (dt*URANIUM_CONDUCTIVITY)/
+        ((0.5*(rho[ind-nx]+rho[ind])*URANIUM_HEAT_CAPACITY)*(celldy[ii]*celldy[ii]));
+    }
+  }
+
+  // Initialise the guess at solution vector
+#pragma omp parallel for
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+#pragma omp simd
+    for(int jj = PAD; jj < nx-PAD; ++jj) {
+      const int ind = ii*nx+jj;
+      Ap[ind] = 
+        - s_y[ind-nx]*p[ind-nx]
+        - s_x[ind-1]*p[ind-1] 
+        + (1.0+s_x[ind-1]+s_x[ind]+s_y[ind-nx]+s_y[ind])*p[ind]
+        - s_x[ind]*p[ind+1]
+        - s_y[ind]*p[ind+nx];
+    }
+  }
+}
+
 // Updates the conjugate from the calculated beta and residual
 void update_conjugate(
-    int nx, int ny, int halo, double beta, 
-    double* p, double* r)
+    const int nx, const int ny, const double beta, const double* r, double* p)
 {
 #pragma omp parallel for
-  for(int ii = halo; ii < ny - halo; ++ii) {
-    for(int jj = halo; jj < nx - halo; ++jj) {
-      const int index = ii*nx + jj;
-      p[index] = r[index] + beta*p[index];
+  for(int ii = PAD; ii < ny - PAD; ++ii) {
+#pragma omp simd
+    for(int jj = PAD; jj < nx - PAD; ++jj) {
+      const int ind = ii*nx + jj;
+      p[ind] = r[ind] + beta*p[ind];
     }
   }
 }
 
 // Calculates a value for alpha
 double calculate_alpha(
-    int nx, int ny, int halo, double* A, 
+    const int nx, const int ny, const double* s_x, const double* s_y,
     double old_rr, double* p, double* Ap)
 {
   double pAp = 0.0;
 
 #pragma omp parallel for reduction(+: pAp)
-  for(int ii = halo; ii < ny - halo; ++ii) {
-    for(int jj = halo; jj < nx - halo; ++jj) {
-      const int index = ii*nx + jj;
-      double Ap_current = smvp_row(index, A, p);
-      Ap[index] = Ap_current;
-      pAp += p[index]*Ap_current;
+  for(int ii = PAD; ii < ny - PAD; ++ii) {
+#pragma omp simd
+    for(int jj = PAD; jj < nx - PAD; ++jj) {
+      const int ind = ii*nx + jj;
+      Ap[ind] = 
+        - s_y[ind-nx]*p[ind-nx]
+        - s_x[ind-1]*p[ind-1] 
+        + (1.0+s_x[ind-1]+s_x[ind]+s_y[ind-nx]+s_y[ind])*p[ind]
+        - s_x[ind]*p[ind+1]
+        - s_y[ind]*p[ind+nx];
+      pAp += p[ind]*Ap[ind];
     }
   }
 
@@ -158,18 +212,19 @@ double calculate_alpha(
 
 // Updates the current guess using the calculated alpha
 double calculate_beta(
-    int nx, int ny, int halo, double alpha, double old_rr, 
+    int nx, int ny, double alpha, double old_rr, 
     double* x, double* p, double* r, double* Ap, double* new_rr)
 {
   double rr_temp = 0.0;
 
 #pragma omp parallel for reduction(+: rr_temp)
-  for(int ii = halo; ii < ny - halo; ++ii) {
-    for(int jj = halo; jj < nx - halo; ++jj) {
-      const int index = ii*nx + jj;
-      x[index] += alpha*p[index];
-      r[index] -= alpha*Ap[index];
-      rr_temp += r[index]*r[index];
+  for(int ii = PAD; ii < ny - PAD; ++ii) {
+#pragma omp simd
+    for(int jj = PAD; jj < nx - PAD; ++jj) {
+      const int ind = ii*nx + jj;
+      x[ind] += alpha*p[ind];
+      r[ind] -= alpha*Ap[ind];
+      rr_temp += r[ind]*r[ind];
     }
   }
 
@@ -185,10 +240,11 @@ void store_residual(
 
 #pragma omp parallel for reduction(+: rr_temp)
   for(int ii = 0; ii < ny; ++ii) {
+#pragma omp simd
     for(int jj = 0; jj < nx; ++jj) {
-      const int index = ii*nx + jj;
-      r[index] = b[index] - Ap[index];
-      rr_temp += r[index]*r[index];
+      const int ind = ii*nx + jj;
+      r[ind] = b[ind] - Ap[ind];
+      rr_temp += r[ind]*r[ind];
     }
   }
 
@@ -199,7 +255,7 @@ void store_residual(
 void copy_vec(
     const int nx, const int ny, double* src, double* dest)
 {
-#pragma omp parallel for
+#pragma omp parallel for simd
   for(int ii = 0; ii < nx*ny; ++ii) {
     dest[ii] = src[ii];
   }

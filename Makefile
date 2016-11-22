@@ -1,7 +1,7 @@
 # User defined parameters
 KERNELS 	  	= omp3
 COMPILER    	= INTEL
-CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost
+CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=c99
 OPTIONS		  	= #-DDEBUG
 
 # Default compiler
