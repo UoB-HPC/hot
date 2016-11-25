@@ -7,11 +7,11 @@
 #define WIDTH 10.0
 #define HEIGHT 10.0
 #define MAX_DT 0.04
-#define NVARS_TO_COMM 4 // rho, e
+#define NVARS_TO_COMM 4 // rho, b
 
 // Arbitrary values for calculating conduction coefficient
-#define CONDUCTIVITY 25
-#define HEAT_CAPACITY 100
+#define CONDUCTIVITY 1.0//25.0
+#define HEAT_CAPACITY 1.0//100.0
 
 // Contains all of the data regarding a particular mesh
 typedef struct
@@ -29,10 +29,10 @@ typedef struct
   int x_off;
   int y_off;
 
-  int* edgedx;
-  int* edgedy;
+  double* edgedx;
+  double* edgedy;
 
-  int* neighbours;
+  int neighbours[NNEIGHBOURS];
 
   double dt;
 
@@ -51,7 +51,7 @@ typedef struct
 typedef struct
 {
   double* Ap;
-  double* e;
+  double* b;
   double* r;
   double* x;
   double* p;
@@ -73,14 +73,18 @@ void initialise_comms(
 
 // Initialises the CG solver
 void initialise_cg(
-    const int nx, const int ny, const double dt, double* p, const double* rho, 
-    double* s_x, double* s_y, double* Ap, const int* celldx, const int* celldy);
+    const int nx, const int ny, const double dt, double* p, double* r,
+    const double* x, const double* rho, double* s_x, double* s_y, double* initial_rr, 
+    const double* edgedx, const double* edgedy);
 
 // Performs the CG solve
 void solve(
-    const int nx, const int ny, const double dt, const int niters, double* x, 
+    const int nx, const int ny, Mesh* mesh, const double dt, const int niters, double* x, 
     double* r, double* p, const double* rho, double* s_x, double* s_y, 
-    double* Ap, double* e, const int* celldx, const int* celldy);
+    double* Ap, const double* edgedx, const double* edgedy);
+
+void handle_boundary(
+    const int nx, const int ny, Mesh* mesh, double* arr, const int pack);
 
 // Updates the conjugate from the calculated beta and residual
 void update_conjugate(
@@ -96,19 +100,7 @@ double calculate_beta(
     int nx, int ny, double alpha, double old_rr, 
     double* x, double* p, double* r, double* Ap, double* new_rr);
 
-// Update the residual at the current step
-void store_residual(
-    int nx, int ny, double* e, double* Ap, double* r, double* old_rr);
-
-// Copies the vector src into dest
-void copy_vec(
-    const int nx, const int ny, double* src, double* dest);
-
 // Prints the vector to std out
 void print_vec(
     const int nx, const int ny, double* a);
-
-// Stores a matrix in the provided filepath
-void store_matrix(
-    int m, int n, double* A, const char* filepath);
 

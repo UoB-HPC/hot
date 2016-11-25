@@ -30,14 +30,16 @@ int main(int argc, char** argv)
 
   initialise_mesh(&mesh);
   initialise_state(mesh.local_nx, mesh.local_ny, &state);
-
-  // Fetch the user's parameters
-  printf("Using the CG solver\n");
+  initialise_comms(argc, argv, &mesh);
 
   solve(
-      mesh.local_nx, mesh.local_ny, mesh.dt, mesh.niters, 
-      state.x, state.r, state.p, state.rho, state.s_x, state.s_y, 
-      state.Ap, state.e, mesh.edgedx, mesh.edgedy);
+      mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, mesh.niters, state.x, 
+      state.r, state.p, state.rho, state.s_x, state.s_y, 
+      state.Ap, mesh.edgedx, mesh.edgedy);
+
+  write_to_visit(
+      mesh.local_nx, mesh.local_ny, mesh.x_off, mesh.y_off, 
+      state.x, "final_result", 1, mesh.dt);
 }
 
 // This is currently duplicated from the hydro package
@@ -70,16 +72,16 @@ void initialise_comms(
 // Initialises the mesh
 void initialise_mesh(Mesh* mesh) 
 {
-  mesh->edgedx = (int*)malloc(sizeof(int)*mesh->local_nx);
-  mesh->edgedy = (int*)malloc(sizeof(int)*mesh->local_ny);
+  mesh->edgedx = (double*)malloc(sizeof(double)*(mesh->local_nx+1));
+  mesh->edgedy = (double*)malloc(sizeof(double)*(mesh->local_ny+1));
 
 #pragma omp parallel for
-  for(int ii = 0; ii < mesh->local_nx; ++ii) {
-    mesh->edgedx[ii] = mesh->width/mesh->global_nx;
+  for(int ii = 0; ii < mesh->local_nx+1; ++ii) {
+    mesh->edgedx[ii] = (double)mesh->width/mesh->global_nx;
   }
 #pragma omp parallel for
-  for(int ii = 0; ii < mesh->local_ny; ++ii) {
-    mesh->edgedy[ii] = mesh->width/mesh->global_ny;
+  for(int ii = 0; ii < mesh->local_ny+1; ++ii) {
+    mesh->edgedy[ii] = (double)mesh->width/mesh->global_ny;
   }
 
   mesh->north_buffer_out 
@@ -104,7 +106,6 @@ void initialise_mesh(Mesh* mesh)
 void initialise_state(const int nx, const int ny, State* state) 
 {
   state->Ap = (double*)malloc(sizeof(double)*nx*ny);
-  state->e = (double*)malloc(sizeof(double)*nx*ny);
   state->r = (double*)malloc(sizeof(double)*nx*ny);
   state->x = (double*)malloc(sizeof(double)*nx*ny);
   state->p = (double*)malloc(sizeof(double)*nx*ny);
@@ -119,7 +120,6 @@ void initialise_state(const int nx, const int ny, State* state)
       state->x[ind0] = 0.0;
       state->r[ind0] = 0.0;
       state->p[ind0] = 0.0;
-      state->e[ind0] = 0.0;
       state->Ap[ind0] = 0.0;
       state->rho[ind0] = 0.0;
     }
@@ -138,68 +138,64 @@ void initialise_state(const int nx, const int ny, State* state)
   for(int ii = 0; ii < ny; ++ii) {
 #pragma omp simd
     for(int jj = 0; jj < nx; ++jj) {
-      if((ii > ny/8 && ii <= ny/4 && jj >= 0 && jj <= nx/2+nx/16) || 
-          (ii >= ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj <= nx/2+nx/16) ||
-          (ii >= 3*ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj < nx)) {
-        state->rho[ind0] = 1.0;
+      if((ii >= ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj <= nx/2+nx/16) ||
+          (ii >= 3*ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj < nx) ||
+          (ii > ny/8 && ii <= ny/4 && jj >= 0 && jj <= nx/2+nx/16)) {
+        state->rho[ind0] = 0.1;
+        state->x[ind0] = 0.1*state->rho[ind0];
       }
       else {
-        state->rho[ind0] = 100.0;
-        state->e[ind0] = 0.0001;
+        state->rho[ind0] = 1.0e3;
+        state->x[ind0] = 1.0e-5*state->rho[ind0];
+      }
+
+      // Heat a region
+      if (ii > ny/8 && ii <= ny/4 && jj >= 10 && jj <= nx/8) {
+        state->rho[ind0] = 0.1;
+        state->x[ind0] = 1.0e3*state->rho[ind0];
       }
     }
   }
 
-  write_to_visit(nx, ny, 0, 0, state->rho, "initial_crooked", 0, 0.0);
-
-  // Homogenous slab problem 
-#pragma omp parallel for
-  for(int ii = 0; ii < ny; ++ii) {
-#pragma omp simd
-    for(int jj = 0; jj < nx; ++jj) {
-      state->rho[ind0] = 1.0;
-      state->e[ind0] = 1.0;
-    }
-  }
+  write_to_visit(nx, ny, 0, 0, state->x, "initial_crooked", 0, 0.0);
 }
 
 // Performs the CG solve
 void solve(
-    const int nx, const int ny, const double dt, const int niters, double* x, 
+    const int nx, const int ny, Mesh* mesh, const double dt, const int niters, double* x, 
     double* r, double* p, const double* rho, double* s_x, double* s_y, 
-    double* Ap, double* e, const int* edgedx, const int* edgedy)
+    double* Ap, const double* edgedx, const double* edgedy)
 {
-  initialise_cg(nx, ny, dt, p, rho, s_x, s_y, Ap, edgedx, edgedy);
-
-#ifdef DEBUG
-  printf("\nVector Ax initial: \n");
-  print_vec(nx, nx, Ap);
-#endif
-
   // Store initial residual
   double old_rr = 0.0;
-  store_residual(nx, ny, e, Ap, r, &old_rr);
+  initialise_cg(nx, ny, dt, p, r, x, rho, s_x, s_y, &old_rr, edgedx, edgedy);
+
+  handle_boundary(nx, ny, mesh, p, PACK);
+  handle_boundary(nx, ny, mesh, x, PACK);
 
 #ifdef DEBUG
-  printf("\nresidual: \n");
-  print_vec(nx, ny, r);
+  printf("old_rr: %.12e\n", old_rr);
+  write_to_visit(nx, ny, 0, 0, x, "x", 0, 0.0);
+  write_to_visit(nx, ny, 0, 0, p, "p", 0, 0.0);
+  write_to_visit(nx, ny, 0, 0, r, "r", 0, 0.0);
 #endif
 
-  // Store initial conjugate
-  copy_vec(nx, ny, r, p);
-
   for(int ii = 0; ii < niters; ++ii) {
-    double alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap); 
+    double alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap);
 
 #ifdef DEBUG
     printf("alpha: %.12e\n", alpha);
+    write_to_visit(nx, ny, 0, 0, Ap, "Ap", 1, 0.0);
 #endif
 
     double new_rr = 0.0;
     double beta = calculate_beta(nx, ny, alpha, old_rr, x, p, r, Ap, &new_rr);
 
 #ifdef DEBUG
+    printf("new_rr: %.12e\n", new_rr);
     printf("beta: %.12e\n", beta);
+    write_to_visit(nx, ny, 0, 0, x, "x", 1, 0.0);
+    write_to_visit(nx, ny, 0, 0, r, "r", 1, 0.0);
 #endif
 
     // Check if the solution has converged
@@ -208,7 +204,10 @@ void solve(
       break;
     }
 
-    update_conjugate(nx, ny, beta, p, r);
+    update_conjugate(nx, ny, beta, r, p);
+
+    handle_boundary(nx, ny, mesh, p, PACK);
+    handle_boundary(nx, ny, mesh, x, PACK);
 
     // Store the old squared residual
     old_rr = new_rr;
@@ -217,56 +216,46 @@ void solve(
     printf("old_rr: %.12e\n", old_rr);
 #endif
   }
-
-  printf("\nResult: \n");
-  print_vec(nx, ny, x);
 }
 
 // Initialises the CG solver
 void initialise_cg(
-    const int nx, const int ny, const double dt, double* p, const double* rho, 
-    double* s_x, double* s_y, double* Ap, const int* edgedx, const int* edgedy)
+    const int nx, const int ny, const double dt, double* p, double* r,
+    const double* x, const double* rho, double* s_x, double* s_y, double* initial_rr, 
+    const double* edgedx, const double* edgedy)
 {
   // https://inldigitallibrary.inl.gov/sti/3952796.pdf
+  // Take the average of the coefficients at the cells surrounding 
+  // each face
 #pragma omp parallel for
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
-      s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
-        (2.0*(rho[ind0]*rho[ind0-1])*(edgedx[ii]*edgedx[ii]));
-      s_y[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-ny]))/
-        (2.0*(rho[ind0]*rho[ind0-ny])*(edgedy[ii]*edgedy[ii]));
+      s_x[ind1] = 
+        (dt/(edgedx[jj]*edgedx[jj])*(CONDUCTIVITY/HEAT_CAPACITY)*
+         ((rho[ind0]+rho[ind0-1]))/(2.0*rho[ind0]*rho[ind0-1]));
+      s_y[ind1] = 
+        (dt/(edgedy[ii]*edgedy[ii])*(CONDUCTIVITY/HEAT_CAPACITY)*
+         ((rho[ind0]+rho[ind0-nx]))/(2.0*rho[ind0]*rho[ind0-nx]));
     }
   }
 
-  // Initialise the guess at solution vector
-  // You don't need to use a matrix as the band matrix is fully predictable
-  // from the 5pt stencil
-#pragma omp parallel for
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  double rr = 0.0;
+#pragma omp parallel for reduction(+: rr)
+  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      Ap[ind0] = 
-        - s_y[ind1-nx]*p[ind0-nx]
-        - s_x[ind1-1]*p[ind0-1] 
-        + (1.0+s_x[ind1-1]+s_x[ind1]+s_y[ind1-nx]+s_y[ind1])*p[ind0]
-        - s_x[ind1]*p[ind0+1]
-        - s_y[ind1]*p[ind0+nx];
+    for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
+      r[ind0] = x[ind0] -
+        ((1.0+s_y[ind1]+s_x[ind1]+s_x[ind1+1]+s_y[ind1+(nx+1)])*x[ind0]
+         - s_y[ind1]*x[ind0-nx]
+         - s_x[ind1]*x[ind0-1] 
+         - s_x[ind1+1]*x[ind0+1]
+         - s_y[ind1+(nx+1)]*x[ind0+nx]);
+      p[ind0] = r[ind0];
+      rr += r[ind0]*r[ind0];
     }
   }
-}
-
-// Updates the conjugate from the calculated beta and residual
-void update_conjugate(
-    const int nx, const int ny, const double beta, const double* r, double* p)
-{
-#pragma omp parallel for
-  for(int ii = PAD; ii < ny - PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < nx - PAD; ++jj) {
-      p[ind0] = r[ind0] + beta*p[ind0];
-    }
-  }
+  *initial_rr = rr;
 }
 
 // Calculates a value for alpha
@@ -276,16 +265,18 @@ double calculate_alpha(
 {
   double pAp = 0.0;
 
+  // You don't need to use a matrix as the band matrix is fully predictable
+  // from the 5pt stencil
 #pragma omp parallel for reduction(+: pAp)
   for(int ii = PAD; ii < ny - PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx - PAD; ++jj) {
       Ap[ind0] = 
-        - s_y[ind1-nx]*p[ind0-nx]
-        - s_x[ind1-1]*p[ind0-1] 
-        + (1.0+s_x[ind1-1]+s_x[ind1]+s_y[ind1-nx]+s_y[ind1])*p[ind0]
-        - s_x[ind1]*p[ind0+1]
-        - s_y[ind1]*p[ind0+nx];
+        (1.0+s_y[ind1]+s_x[ind1]+s_x[ind1+1]+s_y[ind1+(nx+1)])*p[ind0]
+        - s_y[ind1]*p[ind0-nx]
+        - s_x[ind1]*p[ind0-1] 
+        - s_x[ind1+1]*p[ind0+1]
+        - s_y[ind1+(nx+1)]*p[ind0+nx];
       pAp += p[ind0]*Ap[ind0];
     }
   }
@@ -314,31 +305,16 @@ double calculate_beta(
   return rr_temp / old_rr;
 }
 
-// Update the residual at the current step
-void store_residual(
-    int nx, int ny, double* e, double* Ap, double* r, double* old_rr)
+// Updates the conjugate from the calculated beta and residual
+void update_conjugate(
+    const int nx, const int ny, const double beta, const double* r, double* p)
 {
-  double rr_temp = 0.0;
-
-#pragma omp parallel for reduction(+: rr_temp)
-  for(int ii = 0; ii < ny; ++ii) {
+#pragma omp parallel for
+  for(int ii = PAD; ii < ny - PAD; ++ii) {
 #pragma omp simd
-    for(int jj = 0; jj < nx; ++jj) {
-      r[ind0] = e[ind0] - Ap[ind0];
-      rr_temp += r[ind0]*r[ind0];
+    for(int jj = PAD; jj < nx - PAD; ++jj) {
+      p[ind0] = r[ind0] + beta*p[ind0];
     }
-  }
-
-  *old_rr = rr_temp;
-}
-
-// Copies the vector src into dest
-void copy_vec(
-    const int nx, const int ny, double* src, double* dest)
-{
-#pragma omp parallel for simd
-  for(int ii = 0; ii < nx*ny; ++ii) {
-    dest[ii] = src[ii];
   }
 }
 
@@ -352,5 +328,160 @@ void print_vec(
     }
     printf("\n");
   }
+}
+
+// Enforce reflective boundary conditions on the problem state
+void handle_boundary(
+    const int nx, const int ny, Mesh* mesh, double* arr, const int pack)
+{
+#ifdef MPI
+  int nmessages = 0;
+  MPI_Request out_req[NNEIGHBOURS];
+  MPI_Request in_req[NNEIGHBOURS];
+#endif
+
+  if(mesh->neighbours[WEST] == EDGE) {
+    // reflect at the west
+#pragma omp parallel for collapse(2)
+    for(int ii = 0; ii < ny; ++ii) {
+      for(int dd = 0; dd < PAD; ++dd) {
+        arr[ii*nx + (PAD - 1 - dd)] = arr[ii*nx + (PAD + dd)];
+      }
+    }
+  }
+
+#ifdef MPI
+  else if(pack) {
+#pragma omp parallel for collapse(2)
+    for(int ii = 0; ii < ny; ++ii) {
+      for(int dd = 0; dd < PAD; ++dd) {
+        mesh->west_buffer_out[ii*PAD+dd] = arr[(ii*nx)+(PAD+dd)];
+      }
+    }
+
+    MPI_Isend(mesh->west_buffer_out, ny*PAD, MPI_DOUBLE,
+        mesh->neighbours[WEST], 3, MPI_COMM_WORLD, &out_req[WEST]);
+    MPI_Irecv(mesh->west_buffer_in, ny*PAD, MPI_DOUBLE, 
+        mesh->neighbours[WEST], 2, MPI_COMM_WORLD, &in_req[nmessages++]);
+  }
+#endif
+
+  // Reflect at the east
+  if(mesh->neighbours[EAST] == EDGE) {
+#pragma omp parallel for collapse(2)
+    for(int ii = 0; ii < ny; ++ii) {
+      for(int dd = 0; dd < PAD; ++dd) {
+        arr[ii*nx + (nx - PAD + dd)] = arr[ii*nx + (nx - 1 - PAD - dd)];
+      }
+    }
+  }
+#ifdef MPI
+  else if(pack) {
+#pragma omp parallel for collapse(2)
+    for(int ii = 0; ii < ny; ++ii) {
+      for(int dd = 0; dd < PAD; ++dd) {
+        mesh->east_buffer_out[ii*PAD+dd] = arr[(ii*nx)+(nx-2*PAD+dd)];
+      }
+    }
+
+    MPI_Isend(mesh->east_buffer_out, ny*PAD, MPI_DOUBLE, 
+        mesh->neighbours[EAST], 2, MPI_COMM_WORLD, &out_req[EAST]);
+    MPI_Irecv(mesh->east_buffer_in, ny*PAD, MPI_DOUBLE,
+        mesh->neighbours[EAST], 3, MPI_COMM_WORLD, &in_req[nmessages++]);
+  }
+#endif
+
+  // Reflect at the north
+  if(mesh->neighbours[NORTH] == EDGE) {
+#pragma omp parallel for collapse(2)
+    for(int dd = 0; dd < PAD; ++dd) {
+      for(int jj = 0; jj < nx; ++jj) {
+        arr[(ny - PAD + dd)*nx + jj] = arr[(ny - 1 - PAD - dd)*nx + jj];
+      }
+    }
+  }
+#ifdef MPI
+  else if(pack) {
+#pragma omp parallel for collapse(2)
+    for(int dd = 0; dd < PAD; ++dd) {
+      for(int jj = 0; jj < nx; ++jj) {
+        mesh->north_buffer_out[dd*nx+jj] = arr[(ny-2*PAD+dd)*nx+jj];
+      }
+    }
+
+    MPI_Isend(mesh->north_buffer_out, nx*PAD, MPI_DOUBLE, 
+        mesh->neighbours[NORTH], 1, MPI_COMM_WORLD, &out_req[NORTH]);
+    MPI_Irecv(mesh->north_buffer_in, nx*PAD, MPI_DOUBLE,
+        mesh->neighbours[NORTH], 0, MPI_COMM_WORLD, &in_req[nmessages++]);
+  }
+#endif
+
+  // reflect at the south
+  if(mesh->neighbours[SOUTH] == EDGE) {
+#pragma omp parallel for collapse(2)
+    for(int dd = 0; dd < PAD; ++dd) {
+      for(int jj = 0; jj < nx; ++jj) {
+        arr[(PAD - 1 - dd)*nx + jj] = arr[(PAD + dd)*nx + jj];
+      }
+    }
+  }
+#ifdef MPI
+  else if (pack) {
+#pragma omp parallel for collapse(2)
+    for(int dd = 0; dd < PAD; ++dd) {
+      for(int jj = 0; jj < nx; ++jj) {
+        mesh->south_buffer_out[dd*nx+jj] = arr[(PAD+dd)*nx+jj];
+      }
+    }
+
+    MPI_Isend(mesh->south_buffer_out, nx*PAD, MPI_DOUBLE, 
+        mesh->neighbours[SOUTH], 0, MPI_COMM_WORLD, &out_req[SOUTH]);
+    MPI_Irecv(mesh->south_buffer_in, nx*PAD, MPI_DOUBLE,
+        mesh->neighbours[SOUTH], 1, MPI_COMM_WORLD, &in_req[nmessages++]);
+  }
+#endif
+
+  // Unpack the buffers
+#ifdef MPI
+  if(pack) {
+    MPI_Waitall(nmessages, in_req, MPI_STATUSES_IGNORE);
+
+    if(mesh->neighbours[NORTH] != EDGE) {
+#pragma omp parallel for collapse(2)
+      for(int dd = 0; dd < PAD; ++dd) {
+        for(int jj = 0; jj < nx; ++jj) {
+          arr[(ny-PAD+dd)*nx+jj] = mesh->north_buffer_in[dd*nx+jj];
+        }
+      }
+    }
+
+    if(mesh->neighbours[SOUTH] != EDGE) {
+#pragma omp parallel for collapse(2)
+      for(int dd = 0; dd < PAD; ++dd) {
+        for(int jj = 0; jj < nx; ++jj) {
+          arr[dd*nx + jj] = mesh->south_buffer_in[dd*nx+jj];
+        }
+      }
+    }
+
+    if(mesh->neighbours[WEST] != EDGE) {
+#pragma omp parallel for collapse(2)
+      for(int ii = 0; ii < ny; ++ii) {
+        for(int dd = 0; dd < PAD; ++dd) {
+          arr[ii*nx + dd] = mesh->west_buffer_in[ii*PAD+dd];
+        }
+      }
+    }
+
+    if(mesh->neighbours[EAST] != EDGE) {
+#pragma omp parallel for collapse(2)
+      for(int ii = 0; ii < ny; ++ii) {
+        for(int dd = 0; dd < PAD; ++dd) {
+          arr[ii*nx + (nx-PAD+dd)] = mesh->east_buffer_in[ii*PAD+dd];
+        }
+      }
+    }
+  }
+#endif
 }
 

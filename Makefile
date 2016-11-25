@@ -25,5 +25,5 @@ make_build_dir:
 	@mkdir -p obj/$(KERNELS)
 
 clean:
-	rm -rf obj/* hot.exe *.vtk
+	rm -rf obj/* hot.exe *.vtk *.bov *.dat
 
