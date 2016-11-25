@@ -31,9 +31,15 @@ int main(int argc, char** argv)
   mesh.nranks = 1;
   mesh.niters = atoi(argv[3]);
 
-  initialise_mesh(&mesh);
-  initialise_state(mesh.local_nx, mesh.local_ny, &state);
   initialise_comms(argc, argv, &mesh);
+  initialise_mesh(&mesh);
+  initialise_state(
+      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
+      mesh.x_off, mesh.y_off, &state);
+
+  write_all_ranks_to_visit(
+      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+      mesh.y_off, mesh.rank, mesh.nranks, state.x, "initial_result", 0, 0.0);
 
   struct Profile wallclock = {0};
 
@@ -63,127 +69,9 @@ int main(int argc, char** argv)
     printf("Wallclock %.2fs, Elapsed Simulation Time %.4fs\n", global_wallclock, elapsed_sim_time);
   }
 
-  write_to_visit(
-      mesh.local_nx, mesh.local_ny, mesh.x_off, mesh.y_off, 
-      state.x, "final_result", 1, mesh.dt);
-}
-
-// This is currently duplicated from the hydro package
-void initialise_comms(
-    int argc, char** argv, Mesh* mesh)
-{
-  for(int ii = 0; ii < NNEIGHBOURS; ++ii) {
-    mesh->neighbours[ii] = EDGE;
-  }
-
-#ifdef MPI
-  MPI_Init(&argc, &argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, &mesh->rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &mesh->nranks);
-
-  decompose_2d_cartesian(
-      mesh->rank,  mesh->nranks,  mesh->global_nx,  mesh->global_ny, 
-      mesh->neighbours, &mesh->local_nx, &mesh->local_ny, &mesh->x_off, &mesh->y_off);
-
-  // Add on the halo padding to the local mesh
-  mesh->local_nx += 2*PAD;
-  mesh->local_ny += 2*PAD;
-#endif 
-
-  if(mesh->rank == MASTER)
-    printf("Problem dimensions %dx%d for %d iterations.\n", 
-        mesh->global_nx, mesh->global_ny, mesh->niters);
-}
-
-// Initialises the mesh
-void initialise_mesh(Mesh* mesh) 
-{
-  mesh->edgedx = (double*)malloc(sizeof(double)*(mesh->local_nx+1));
-  mesh->edgedy = (double*)malloc(sizeof(double)*(mesh->local_ny+1));
-
-#pragma omp parallel for
-  for(int ii = 0; ii < mesh->local_nx+1; ++ii) {
-    mesh->edgedx[ii] = (double)mesh->width/mesh->global_nx;
-  }
-#pragma omp parallel for
-  for(int ii = 0; ii < mesh->local_ny+1; ++ii) {
-    mesh->edgedy[ii] = (double)mesh->width/mesh->global_ny;
-  }
-
-  mesh->north_buffer_out 
-    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
-  mesh->east_buffer_out  
-    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
-  mesh->south_buffer_out 
-    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
-  mesh->west_buffer_out  
-    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
-  mesh->north_buffer_in  
-    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
-  mesh->east_buffer_in   
-    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
-  mesh->south_buffer_in  
-    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
-  mesh->west_buffer_in   
-    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
-}
-
-// Initialises the state variables
-void initialise_state(const int nx, const int ny, State* state) 
-{
-  state->Ap = (double*)malloc(sizeof(double)*nx*ny);
-  state->r = (double*)malloc(sizeof(double)*nx*ny);
-  state->x = (double*)malloc(sizeof(double)*nx*ny);
-  state->p = (double*)malloc(sizeof(double)*nx*ny);
-  state->s_x = (double*)malloc(sizeof(double)*(nx+1)*(ny+1));
-  state->s_y = (double*)malloc(sizeof(double)*(nx+1)*(ny+1));
-  state->rho = (double*)malloc(sizeof(double)*nx*ny);
-
-#pragma omp parallel for
-  for(int ii = 0; ii < ny; ++ii) {
-#pragma omp simd
-    for(int jj = 0; jj < nx; ++jj) {
-      state->x[ind0] = 0.0;
-      state->r[ind0] = 0.0;
-      state->p[ind0] = 0.0;
-      state->Ap[ind0] = 0.0;
-      state->rho[ind0] = 0.0;
-    }
-  }
-#pragma omp parallel for
-  for(int ii = 0; ii < (ny+1); ++ii) {
-#pragma omp simd
-    for(int jj = 0; jj < (nx+1); ++jj) {
-      state->s_x[ind1] = 0.0;
-      state->s_y[ind1] = 0.0;
-    }
-  }
-
-  // Crooked pipe problem
-#pragma omp parallel for
-  for(int ii = 0; ii < ny; ++ii) {
-#pragma omp simd
-    for(int jj = 0; jj < nx; ++jj) {
-      if((ii >= ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj <= nx/2+nx/16) ||
-          (ii >= 3*ny/4 && ii <= 7*ny/8 && jj >= nx/2-nx/16 && jj < nx) ||
-          (ii > ny/8 && ii <= ny/4 && jj >= 0 && jj <= nx/2+nx/16)) {
-        state->rho[ind0] = 0.1;
-        state->x[ind0] = 0.1*state->rho[ind0];
-      }
-      else {
-        state->rho[ind0] = 1.0e3;
-        state->x[ind0] = 1.0e-5*state->rho[ind0];
-      }
-
-      // Heat a region
-      if (ii > ny/8 && ii <= ny/4 && jj >= 10 && jj <= nx/8) {
-        state->rho[ind0] = 0.1;
-        state->x[ind0] = 1.0e3*state->rho[ind0];
-      }
-    }
-  }
-
-  write_to_visit(nx, ny, 0, 0, state->x, "initial_crooked", 0, 0.0);
+  write_all_ranks_to_visit(
+      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+      mesh.y_off, mesh.rank, mesh.nranks, state.x, "final_result", 0, elapsed_sim_time);
 }
 
 // Performs the CG solve
@@ -193,55 +81,67 @@ void solve(
     double* Ap, const double* edgedx, const double* edgedy)
 {
   // Store initial residual
-  double old_rr = 0.0;
   START_PROFILING(&compute_profile);
-  initialise_cg(nx, ny, dt, p, r, x, rho, s_x, s_y, &old_rr, edgedx, edgedy);
+  double local_old_rr = initialise_cg(
+      nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
   STOP_PROFILING(&compute_profile, "initialise cg");
+
+  double global_old_rr = local_old_rr;
+#ifdef MPI
+  START_PROFILING(&compute_profile);
+  MPI_Allreduce(&local_old_rr, &global_old_rr, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  STOP_PROFILING(&compute_profile, "communications");
+#endif
 
   handle_boundary(nx, ny, mesh, p, PACK);
   handle_boundary(nx, ny, mesh, x, PACK);
 
   for(int ii = 0; ii < niters; ++ii) {
     START_PROFILING(&compute_profile);
-    const double local_alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap);
+    const double local_alpha = calculate_alpha(nx, ny, s_x, s_y, global_old_rr, p, Ap);
     STOP_PROFILING(&compute_profile, "calculate alpha");
 
-    double global_alpha = 0.0;
-    MPI_Allreduce(&local_alpha, &global_alpha, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    STOP_PROFILING(&computer_profile, "communications");
-
-    double new_rr = 0.0;
+    double global_alpha = local_alpha;
+#ifdef MPI
     START_PROFILING(&compute_profile);
-    const double local_beta = calculate_beta(nx, ny, global_alpha, old_rr, x, p, r, Ap, &new_rr);
+    MPI_Allreduce(&local_alpha, &global_alpha, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    STOP_PROFILING(&compute_profile, "communications");
+#endif
+
+    START_PROFILING(&compute_profile);
+    const double local_new_rr = calculate_new_rr(nx, ny, global_alpha, x, p, r, Ap);
     STOP_PROFILING(&compute_profile, "calculate beta");
 
-    double global_beta = 0.0;
+    double global_new_rr = local_new_rr;
+#ifdef MPI
     START_PROFILING(&compute_profile);
-    MPI_Allreduce(&local_beta, &global_beta, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    STOP_PROFILING(&computer_profile, "communications");
+    MPI_Allreduce(&local_new_rr, &global_new_rr, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    STOP_PROFILING(&compute_profile, "communications");
+#endif
 
     // Check if the solution has converged
-    if(fabs(new_rr) < 1.0e-05) {
-      printf("exiting at iteration %d with new_rr: %.12e\n", ii, new_rr);
+    if(fabs(global_new_rr) < 1.0e-05) {
+      printf("exiting at iteration %d with new_rr: %.12e\n", ii, global_new_rr);
       break;
     }
 
     START_PROFILING(&compute_profile);
-    update_conjugate(nx, ny, global_beta, r, p);
+    const double beta = global_new_rr/global_old_rr;
+    update_conjugate(nx, ny, beta, r, p);
     STOP_PROFILING(&compute_profile, "update conjugate");
 
     handle_boundary(nx, ny, mesh, p, PACK);
     handle_boundary(nx, ny, mesh, x, PACK);
 
     // Store the old squared residual
-    old_rr = new_rr;
+    global_old_rr = global_new_rr;
   }
 }
 
 // Initialises the CG solver
-void initialise_cg(
+double initialise_cg(
     const int nx, const int ny, const double dt, double* p, double* r,
-    const double* x, const double* rho, double* s_x, double* s_y, double* initial_rr, 
+    const double* x, const double* rho, double* s_x, double* s_y, 
     const double* edgedx, const double* edgedy)
 {
   // https://inldigitallibrary.inl.gov/sti/3952796.pdf
@@ -258,8 +158,8 @@ void initialise_cg(
     }
   }
 
-  double rr = 0.0;
-#pragma omp parallel for reduction(+: rr)
+  double initial_rr = 0.0;
+#pragma omp parallel for reduction(+: initial_rr)
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
@@ -270,10 +170,10 @@ void initialise_cg(
          - s_x[ind1+1]*x[ind0+1]
          - s_y[ind1+(nx+1)]*x[ind0+nx]);
       p[ind0] = r[ind0];
-      rr += r[ind0]*r[ind0];
+      initial_rr += r[ind0]*r[ind0];
     }
   }
-  *initial_rr = rr;
+  return initial_rr;
 }
 
 // Calculates a value for alpha
@@ -281,10 +181,9 @@ double calculate_alpha(
     const int nx, const int ny, const double* s_x, const double* s_y,
     double old_rr, double* p, double* Ap)
 {
-  double pAp = 0.0;
-
   // You don't need to use a matrix as the band matrix is fully predictable
   // from the 5pt stencil
+  double pAp = 0.0;
 #pragma omp parallel for reduction(+: pAp)
   for(int ii = PAD; ii < ny - PAD; ++ii) {
 #pragma omp simd
@@ -303,9 +202,8 @@ double calculate_alpha(
 }
 
 // Updates the current guess using the calculated alpha
-double calculate_beta(
-    int nx, int ny, double alpha, double old_rr, 
-    double* x, double* p, double* r, double* Ap, double* new_rr)
+double calculate_new_rr(
+    int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap)
 {
   double rr_temp = 0.0;
 
@@ -319,8 +217,7 @@ double calculate_beta(
     }
   }
 
-  *new_rr = rr_temp;
-  return rr_temp / old_rr;
+  return rr_temp;
 }
 
 // Updates the conjugate from the calculated beta and residual
@@ -369,7 +266,6 @@ void handle_boundary(
       }
     }
   }
-
 #ifdef MPI
   else if(pack) {
 #pragma omp parallel for collapse(2)
@@ -505,5 +401,132 @@ void handle_boundary(
 #endif
 
   STOP_PROFILING(&compute_profile, "communications");
+}
+
+// This is currently duplicated from the hydro package
+void initialise_comms(
+    int argc, char** argv, Mesh* mesh)
+{
+  for(int ii = 0; ii < NNEIGHBOURS; ++ii) {
+    mesh->neighbours[ii] = EDGE;
+  }
+
+#ifdef MPI
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &mesh->rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mesh->nranks);
+
+  decompose_2d_cartesian(
+      mesh->rank, mesh->nranks, mesh->global_nx, mesh->global_ny, 
+      mesh->neighbours, &mesh->local_nx, &mesh->local_ny, &mesh->x_off, &mesh->y_off);
+
+  // Add on the halo padding to the local mesh
+  mesh->local_nx += 2*PAD;
+  mesh->local_ny += 2*PAD;
+#endif 
+
+  if(mesh->rank == MASTER)
+    printf("Problem dimensions %dx%d for %d iterations.\n", 
+        mesh->global_nx, mesh->global_ny, mesh->niters);
+}
+
+// Initialises the mesh
+void initialise_mesh(Mesh* mesh) 
+{
+  mesh->edgedx = (double*)malloc(sizeof(double)*(mesh->local_nx+1));
+  mesh->edgedy = (double*)malloc(sizeof(double)*(mesh->local_ny+1));
+
+#pragma omp parallel for
+  for(int ii = 0; ii < mesh->local_nx+1; ++ii) {
+    mesh->edgedx[ii] = (double)mesh->width/mesh->global_nx;
+  }
+#pragma omp parallel for
+  for(int ii = 0; ii < mesh->local_ny+1; ++ii) {
+    mesh->edgedy[ii] = (double)mesh->width/mesh->global_ny;
+  }
+
+  mesh->north_buffer_out 
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->east_buffer_out  
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+  mesh->south_buffer_out 
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->west_buffer_out  
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+  mesh->north_buffer_in  
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->east_buffer_in   
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+  mesh->south_buffer_in  
+    = (double*)malloc(sizeof(double)*(mesh->local_nx+1)*PAD*NVARS_TO_COMM);
+  mesh->west_buffer_in   
+    = (double*)malloc(sizeof(double)*(mesh->local_ny+1)*PAD*NVARS_TO_COMM);
+}
+
+// Initialises the state variables
+void initialise_state(
+    const int global_nx, const int global_ny, const int local_nx, const int local_ny, 
+    const int xoff, const int yoff, State* state) 
+{
+  state->Ap = (double*)malloc(sizeof(double)*local_nx*local_ny);
+  state->r = (double*)malloc(sizeof(double)*local_nx*local_ny);
+  state->x = (double*)malloc(sizeof(double)*local_nx*local_ny);
+  state->p = (double*)malloc(sizeof(double)*local_nx*local_ny);
+  state->s_x = (double*)malloc(sizeof(double)*(local_nx+1)*(local_ny+1));
+  state->s_y = (double*)malloc(sizeof(double)*(local_nx+1)*(local_ny+1));
+  state->rho = (double*)malloc(sizeof(double)*local_nx*local_ny);
+
+#pragma omp parallel for
+  for(int ii = 0; ii < local_ny; ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < local_nx; ++jj) {
+      const int index = ii*local_nx+jj;
+      state->x[index] = 0.0;
+      state->r[index] = 0.0;
+      state->p[index] = 0.0;
+      state->Ap[index] = 0.0;
+      state->rho[index] = 0.0;
+    }
+  }
+#pragma omp parallel for
+  for(int ii = 0; ii < (local_ny+1); ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < (local_nx+1); ++jj) {
+      state->s_x[ii*(local_nx+1)+jj] = 0.0;
+      state->s_y[ii*(local_nx+1)+jj] = 0.0;
+    }
+  }
+
+  // Crooked pipe problem
+#pragma omp parallel for
+  for(int ii = 0; ii < local_ny; ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < local_nx; ++jj) {
+      const int ioff = ii+yoff;
+      const int joff = jj+xoff;
+      const int index = ii*local_nx+jj;
+      // Crooked pipe problem
+      if((ioff >= global_ny/4 && ioff <= 7*global_ny/8 && 
+            joff >= global_nx/2-global_nx/16 && joff <= global_nx/2+global_nx/16) ||
+          (ioff >= 3*global_ny/4 && ioff <= 7*global_ny/8 && 
+           joff >= global_nx/2-global_nx/16 && joff < global_nx) ||
+          (ioff > global_ny/8 && ioff <= global_ny/4 && 
+           joff >= 0 && joff <= global_nx/2+global_nx/16)) {
+        state->rho[index] = 0.1;
+        state->x[index] = 0.1*state->rho[index];
+      }
+      else {
+        state->rho[index] = 1.0e3;
+        state->x[index] = 1.0e-5*state->rho[index];
+      }
+
+      // Heat a region
+      if (ioff > global_ny/8 && ioff <= global_ny/4 && 
+          joff >= 10 && joff <= global_nx/8) {
+        state->rho[index] = 0.1;
+        state->x[index] = 1.0e3*state->rho[index];
+      }
+    }
+  }
 }
 

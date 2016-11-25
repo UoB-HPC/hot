@@ -63,16 +63,18 @@ typedef struct
 void initialise_mesh(Mesh* mesh);
 
 // Initialises the state variables
-void initialise_state(const int nx, const int ny, State* state);
+void initialise_state(
+    const int global_nx, const int global_ny, const int local_nx, 
+    const int xoff, const int yoff, const int local_ny, State* state);
 
 // Initialise the communications
 void initialise_comms(
     int argc, char** argv, Mesh* mesh);
 
 // Initialises the CG solver
-void initialise_cg(
+double initialise_cg(
     const int nx, const int ny, const double dt, double* p, double* r,
-    const double* x, const double* rho, double* s_x, double* s_y, double* initial_rr, 
+    const double* x, const double* rho, double* s_x, double* s_y, 
     const double* edgedx, const double* edgedy);
 
 // Performs the CG solve
@@ -94,9 +96,8 @@ double calculate_alpha(
     double old_rr, double* p, double* Ap);
 
 // Updates the current guess using the calculated alpha
-double calculate_beta(
-    int nx, int ny, double alpha, double old_rr, 
-    double* x, double* p, double* r, double* Ap, double* new_rr);
+double calculate_new_rr(
+    int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap);
 
 // Prints the vector to std out
 void print_vec(
