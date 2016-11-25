@@ -1,7 +1,5 @@
 #pragma once
 
-#define MPI
-
 #include "../shared.h"
 
 #define WIDTH 10.0

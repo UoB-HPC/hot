@@ -2,7 +2,7 @@
 KERNELS 	  	= omp3
 COMPILER    	= INTEL
 CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99
-OPTIONS		  	= -DENABLE_PROFILING #-DDEBUG
+OPTIONS		  	= -DENABLE_PROFILING -DMPI #-DDEBUG
 
 # Default compiler
 MAPP_COMPILER = mpicc

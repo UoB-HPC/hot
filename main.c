@@ -203,13 +203,22 @@ void solve(
 
   for(int ii = 0; ii < niters; ++ii) {
     START_PROFILING(&compute_profile);
-    double alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap);
+    const double local_alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap);
     STOP_PROFILING(&compute_profile, "calculate alpha");
+
+    double global_alpha = 0.0;
+    MPI_Allreduce(&local_alpha, &global_alpha, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    STOP_PROFILING(&computer_profile, "communications");
 
     double new_rr = 0.0;
     START_PROFILING(&compute_profile);
-    double beta = calculate_beta(nx, ny, alpha, old_rr, x, p, r, Ap, &new_rr);
+    const double local_beta = calculate_beta(nx, ny, global_alpha, old_rr, x, p, r, Ap, &new_rr);
     STOP_PROFILING(&compute_profile, "calculate beta");
+
+    double global_beta = 0.0;
+    START_PROFILING(&compute_profile);
+    MPI_Allreduce(&local_beta, &global_beta, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    STOP_PROFILING(&computer_profile, "communications");
 
     // Check if the solution has converged
     if(fabs(new_rr) < 1.0e-05) {
@@ -218,7 +227,7 @@ void solve(
     }
 
     START_PROFILING(&compute_profile);
-    update_conjugate(nx, ny, beta, r, p);
+    update_conjugate(nx, ny, global_beta, r, p);
     STOP_PROFILING(&compute_profile, "update conjugate");
 
     handle_boundary(nx, ny, mesh, p, PACK);
