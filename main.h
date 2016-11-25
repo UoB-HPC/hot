@@ -91,9 +91,9 @@ void update_conjugate(
     const int nx, const int ny, const double beta, const double* r, double* p);
 
 // Calculates a value for alpha
-double calculate_alpha(
+double calculate_pAp(
     const int nx, const int ny, const double* s_x, const double* s_y,
-    double old_rr, double* p, double* Ap);
+    double* p, double* Ap);
 
 // Updates the current guess using the calculated alpha
 double calculate_new_rr(
