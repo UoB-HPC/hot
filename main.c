@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include "profiler.h"
 #include "main.h"
 
 #define ind0 (ii*nx + jj)
 #define ind1 (ii*(nx+1) + jj)
+
+struct Profile compute_profile = {0};
 
 int main(int argc, char** argv)
 {
@@ -32,10 +35,33 @@ int main(int argc, char** argv)
   initialise_state(mesh.local_nx, mesh.local_ny, &state);
   initialise_comms(argc, argv, &mesh);
 
-  solve(
-      mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, mesh.niters, state.x, 
-      state.r, state.p, state.rho, state.s_x, state.s_y, 
-      state.Ap, mesh.edgedx, mesh.edgedy);
+  struct Profile wallclock = {0};
+
+  int tt = 0;
+  double elapsed_sim_time = 0.0;
+  for(tt = 0; tt < 1; ++tt) {
+    START_PROFILING(&wallclock);
+    solve(
+        mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, mesh.niters, state.x, 
+        state.r, state.p, state.rho, state.s_x, state.s_y, 
+        state.Ap, mesh.edgedx, mesh.edgedy);
+    STOP_PROFILING(&wallclock, "wallclock");
+
+    elapsed_sim_time += mesh.dt;
+  }
+
+  double global_wallclock = 0.0;
+  if(tt > 0) {
+#ifdef MPI
+    struct ProfileEntry pe = profiler_get_profile_entry(&wallclock, "wallclock");
+    MPI_Reduce(&pe.time, &global_wallclock, 1, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
+#endif
+  }
+
+  if(mesh.rank == MASTER) {
+    PRINT_PROFILING_RESULTS(&compute_profile);
+    printf("Wallclock %.2fs, Elapsed Simulation Time %.4fs\n", global_wallclock, elapsed_sim_time);
+  }
 
   write_to_visit(
       mesh.local_nx, mesh.local_ny, mesh.x_off, mesh.y_off, 
@@ -168,35 +194,22 @@ void solve(
 {
   // Store initial residual
   double old_rr = 0.0;
+  START_PROFILING(&compute_profile);
   initialise_cg(nx, ny, dt, p, r, x, rho, s_x, s_y, &old_rr, edgedx, edgedy);
+  STOP_PROFILING(&compute_profile, "initialise cg");
 
   handle_boundary(nx, ny, mesh, p, PACK);
   handle_boundary(nx, ny, mesh, x, PACK);
 
-#ifdef DEBUG
-  printf("old_rr: %.12e\n", old_rr);
-  write_to_visit(nx, ny, 0, 0, x, "x", 0, 0.0);
-  write_to_visit(nx, ny, 0, 0, p, "p", 0, 0.0);
-  write_to_visit(nx, ny, 0, 0, r, "r", 0, 0.0);
-#endif
-
   for(int ii = 0; ii < niters; ++ii) {
+    START_PROFILING(&compute_profile);
     double alpha = calculate_alpha(nx, ny, s_x, s_y, old_rr, p, Ap);
-
-#ifdef DEBUG
-    printf("alpha: %.12e\n", alpha);
-    write_to_visit(nx, ny, 0, 0, Ap, "Ap", 1, 0.0);
-#endif
+    STOP_PROFILING(&compute_profile, "calculate alpha");
 
     double new_rr = 0.0;
+    START_PROFILING(&compute_profile);
     double beta = calculate_beta(nx, ny, alpha, old_rr, x, p, r, Ap, &new_rr);
-
-#ifdef DEBUG
-    printf("new_rr: %.12e\n", new_rr);
-    printf("beta: %.12e\n", beta);
-    write_to_visit(nx, ny, 0, 0, x, "x", 1, 0.0);
-    write_to_visit(nx, ny, 0, 0, r, "r", 1, 0.0);
-#endif
+    STOP_PROFILING(&compute_profile, "calculate beta");
 
     // Check if the solution has converged
     if(fabs(new_rr) < 1.0e-05) {
@@ -204,17 +217,15 @@ void solve(
       break;
     }
 
+    START_PROFILING(&compute_profile);
     update_conjugate(nx, ny, beta, r, p);
+    STOP_PROFILING(&compute_profile, "update conjugate");
 
     handle_boundary(nx, ny, mesh, p, PACK);
     handle_boundary(nx, ny, mesh, x, PACK);
 
     // Store the old squared residual
     old_rr = new_rr;
-
-#ifdef DEBUG
-    printf("old_rr: %.12e\n", old_rr);
-#endif
   }
 }
 
@@ -231,12 +242,10 @@ void initialise_cg(
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
-      s_x[ind1] = 
-        (dt/(edgedx[jj]*edgedx[jj])*(CONDUCTIVITY/HEAT_CAPACITY)*
-         ((rho[ind0]+rho[ind0-1]))/(2.0*rho[ind0]*rho[ind0-1]));
-      s_y[ind1] = 
-        (dt/(edgedy[ii]*edgedy[ii])*(CONDUCTIVITY/HEAT_CAPACITY)*
-         ((rho[ind0]+rho[ind0-nx]))/(2.0*rho[ind0]*rho[ind0-nx]));
+      s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
+        (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
+      s_y[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
+        (2.0*rho[ind0]*rho[ind0-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
     }
   }
 
@@ -334,6 +343,8 @@ void print_vec(
 void handle_boundary(
     const int nx, const int ny, Mesh* mesh, double* arr, const int pack)
 {
+  START_PROFILING(&compute_profile);
+
 #ifdef MPI
   int nmessages = 0;
   MPI_Request out_req[NNEIGHBOURS];
@@ -483,5 +494,7 @@ void handle_boundary(
     }
   }
 #endif
+
+  STOP_PROFILING(&compute_profile, "communications");
 }
 

@@ -1,8 +1,8 @@
 # User defined parameters
 KERNELS 	  	= omp3
 COMPILER    	= INTEL
-CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=c99
-OPTIONS		  	= -DDEBUG
+CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99
+OPTIONS		  	= -DENABLE_PROFILING #-DDEBUG
 
 # Default compiler
 MAPP_COMPILER = mpicc
