@@ -99,6 +99,9 @@ double calculate_pAp(
 double calculate_new_rr(
     int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap);
 
+// Reduces the value over ranks
+double all_reduce(double local_val);
+
 // Prints the vector to std out
 void print_vec(
     const int nx, const int ny, double* a);

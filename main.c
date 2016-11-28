@@ -45,13 +45,17 @@ int main(int argc, char** argv)
 
   int tt = 0;
   double elapsed_sim_time = 0.0;
-  for(tt = 0; tt < 1; ++tt) {
+  for(tt = 0; tt < 30; ++tt) {
     START_PROFILING(&wallclock);
     solve(
         mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, mesh.niters, state.x, 
         state.r, state.p, state.rho, state.s_x, state.s_y, 
         state.Ap, mesh.edgedx, mesh.edgedy);
     STOP_PROFILING(&wallclock, "wallclock");
+
+    write_all_ranks_to_visit(
+        mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+        mesh.y_off, mesh.rank, mesh.nranks, state.x, "final_result", tt, elapsed_sim_time);
 
     elapsed_sim_time += mesh.dt;
   }
@@ -86,43 +90,30 @@ void solve(
       nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
   STOP_PROFILING(&compute_profile, "initialise cg");
 
-  double global_old_rr = local_old_rr;
-#ifdef MPI
-  START_PROFILING(&compute_profile);
-  MPI_Allreduce(&local_old_rr, &global_old_rr, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  STOP_PROFILING(&compute_profile, "communications");
-#endif
+  double global_old_rr = all_reduce(local_old_rr);
 
   handle_boundary(nx, ny, mesh, p, PACK);
   handle_boundary(nx, ny, mesh, x, PACK);
 
+  // TODO: Can one of the allreduces be removed if you use the local_rr more?
   for(int ii = 0; ii < niters; ++ii) {
     START_PROFILING(&compute_profile);
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
     STOP_PROFILING(&compute_profile, "calculate alpha");
 
-    double global_pAp = local_pAp;
-#ifdef MPI
-    START_PROFILING(&compute_profile);
-    MPI_Allreduce(&local_pAp, &global_pAp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    STOP_PROFILING(&compute_profile, "communications");
-#endif
+    double global_pAp = all_reduce(local_pAp);
 
     START_PROFILING(&compute_profile);
     const double alpha = global_old_rr/global_pAp;
     const double local_new_rr = calculate_new_rr(nx, ny, alpha, x, p, r, Ap);
     STOP_PROFILING(&compute_profile, "calculate beta");
 
-    double global_new_rr = local_new_rr;
-#ifdef MPI
-    START_PROFILING(&compute_profile);
-    MPI_Allreduce(&local_new_rr, &global_new_rr, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    STOP_PROFILING(&compute_profile, "communications");
-#endif
+    double global_new_rr = all_reduce(local_new_rr);
 
     // Check if the solution has converged
     if(fabs(global_new_rr) < 1.0e-05) {
-      printf("exiting at iteration %d with new_rr: %.12e\n", ii, global_new_rr);
+      if(mesh->rank == MASTER)
+        printf("exiting at iteration %d with new_rr: %.12e\n", ii, global_new_rr);
       break;
     }
 
@@ -137,6 +128,17 @@ void solve(
     // Store the old squared residual
     global_old_rr = global_new_rr;
   }
+}
+
+// Reduces a value over ranks
+double all_reduce(double local_val) {
+  double global_val = local_val;
+#ifdef MPI
+  START_PROFILING(&compute_profile);
+  MPI_Allreduce(&local_val, &global_val, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  STOP_PROFILING(&compute_profile, "communications");
+#endif
+  return global_val;
 }
 
 // Initialises the CG solver
@@ -340,6 +342,17 @@ void initialise_state(
     }
   }
 
+  // Set the initial state
+#pragma omp parallel for
+  for(int ii = 0; ii < local_ny; ++ii) {
+#pragma omp simd
+    for(int jj = 0; jj < local_nx; ++jj) {
+      const int index = ii*local_nx+jj;
+      state->rho[index] = 1.0e3;
+      state->x[index] = 1.0e-5*state->rho[index];
+    }
+  }
+
   // Crooked pipe problem
 #pragma omp parallel for
   for(int ii = 0; ii < local_ny; ++ii) {
@@ -348,26 +361,17 @@ void initialise_state(
       const int ioff = ii+yoff;
       const int joff = jj+xoff;
       const int index = ii*local_nx+jj;
-      // Crooked pipe problem
-      if((ioff >= global_ny/4 && ioff <= 7*global_ny/8 && 
-            joff >= global_nx/2-global_nx/16 && joff <= global_nx/2+global_nx/16) ||
-          (ioff >= 3*global_ny/4 && ioff <= 7*global_ny/8 && 
-           joff >= global_nx/2-global_nx/16 && joff < global_nx) ||
-          (ioff > global_ny/8 && ioff <= global_ny/4 && 
-           joff >= 0 && joff <= global_nx/2+global_nx/16)) {
-        state->rho[index] = 0.1;
-        state->x[index] = 0.1*state->rho[index];
-      }
-      else {
-        state->rho[index] = 1.0e3;
-        state->x[index] = 1.0e-5*state->rho[index];
-      }
-
-      // Heat a region
-      if (ioff > global_ny/8 && ioff <= global_ny/4 && 
-          joff >= 10 && joff <= global_nx/8) {
-        state->rho[index] = 0.1;
-        state->x[index] = 1.0e3*state->rho[index];
+      // Box problem
+      if((ioff >= 7*global_ny/8 || ioff < global_ny/8) ||
+          (joff >= 7*global_nx/8 || joff < global_nx/8)) {
+        if(joff > 20) {
+          state->rho[index] = 0.1;
+          state->x[index] = 0.1*state->rho[index];
+        }
+        else {
+          state->rho[index] = 0.1;
+          state->x[index] = 1.0e3*state->rho[index];
+        }
       }
     }
   }
