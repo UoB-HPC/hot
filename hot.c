@@ -23,8 +23,8 @@ void solve_diffusion(
 
   double global_old_rr = reduce_all_sum(local_old_rr);
 
-  handle_boundary(nx, ny, mesh, p, PACK);
-  handle_boundary(nx, ny, mesh, x, PACK);
+  handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
+  handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
 
   // TODO: Can one of the allreduces be removed if you use the local_rr more?
   int ii = 0;
@@ -47,8 +47,8 @@ void solve_diffusion(
     const double beta = global_new_rr/global_old_rr;
     update_conjugate(nx, ny, beta, r, p);
 
-    handle_boundary(nx, ny, mesh, p, PACK);
-    handle_boundary(nx, ny, mesh, x, PACK);
+    handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
+    handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
 
     // Store the old squared residual
     global_old_rr = global_new_rr;
@@ -175,163 +175,5 @@ void print_vec(
     }
     printf("\n");
   }
-}
-
-// Enforce reflective boundary conditions on the problem state
-void handle_boundary(
-    const int nx, const int ny, Mesh* mesh, double* arr, const int pack)
-{
-  START_PROFILING(&compute_profile);
-
-#ifdef MPI
-  int nmessages = 0;
-  MPI_Request out_req[NNEIGHBOURS];
-  MPI_Request in_req[NNEIGHBOURS];
-#endif
-
-  if(mesh->neighbours[WEST] == EDGE) {
-    // reflect at the west
-#pragma omp parallel for collapse(2)
-    for(int ii = 0; ii < ny; ++ii) {
-      for(int dd = 0; dd < PAD; ++dd) {
-        arr[ii*nx + (PAD - 1 - dd)] = arr[ii*nx + (PAD + dd)];
-      }
-    }
-  }
-#ifdef MPI
-  else if(pack) {
-#pragma omp parallel for collapse(2)
-    for(int ii = 0; ii < ny; ++ii) {
-      for(int dd = 0; dd < PAD; ++dd) {
-        mesh->west_buffer_out[ii*PAD+dd] = arr[(ii*nx)+(PAD+dd)];
-      }
-    }
-
-    MPI_Isend(mesh->west_buffer_out, ny*PAD, MPI_DOUBLE,
-        mesh->neighbours[WEST], 3, MPI_COMM_WORLD, &out_req[WEST]);
-    MPI_Irecv(mesh->west_buffer_in, ny*PAD, MPI_DOUBLE, 
-        mesh->neighbours[WEST], 2, MPI_COMM_WORLD, &in_req[nmessages++]);
-  }
-#endif
-
-  // Reflect at the east
-  if(mesh->neighbours[EAST] == EDGE) {
-#pragma omp parallel for collapse(2)
-    for(int ii = 0; ii < ny; ++ii) {
-      for(int dd = 0; dd < PAD; ++dd) {
-        arr[ii*nx + (nx - PAD + dd)] = arr[ii*nx + (nx - 1 - PAD - dd)];
-      }
-    }
-  }
-#ifdef MPI
-  else if(pack) {
-#pragma omp parallel for collapse(2)
-    for(int ii = 0; ii < ny; ++ii) {
-      for(int dd = 0; dd < PAD; ++dd) {
-        mesh->east_buffer_out[ii*PAD+dd] = arr[(ii*nx)+(nx-2*PAD+dd)];
-      }
-    }
-
-    MPI_Isend(mesh->east_buffer_out, ny*PAD, MPI_DOUBLE, 
-        mesh->neighbours[EAST], 2, MPI_COMM_WORLD, &out_req[EAST]);
-    MPI_Irecv(mesh->east_buffer_in, ny*PAD, MPI_DOUBLE,
-        mesh->neighbours[EAST], 3, MPI_COMM_WORLD, &in_req[nmessages++]);
-  }
-#endif
-
-  // Reflect at the north
-  if(mesh->neighbours[NORTH] == EDGE) {
-#pragma omp parallel for collapse(2)
-    for(int dd = 0; dd < PAD; ++dd) {
-      for(int jj = 0; jj < nx; ++jj) {
-        arr[(ny - PAD + dd)*nx + jj] = arr[(ny - 1 - PAD - dd)*nx + jj];
-      }
-    }
-  }
-#ifdef MPI
-  else if(pack) {
-#pragma omp parallel for collapse(2)
-    for(int dd = 0; dd < PAD; ++dd) {
-      for(int jj = 0; jj < nx; ++jj) {
-        mesh->north_buffer_out[dd*nx+jj] = arr[(ny-2*PAD+dd)*nx+jj];
-      }
-    }
-
-    MPI_Isend(mesh->north_buffer_out, nx*PAD, MPI_DOUBLE, 
-        mesh->neighbours[NORTH], 1, MPI_COMM_WORLD, &out_req[NORTH]);
-    MPI_Irecv(mesh->north_buffer_in, nx*PAD, MPI_DOUBLE,
-        mesh->neighbours[NORTH], 0, MPI_COMM_WORLD, &in_req[nmessages++]);
-  }
-#endif
-
-  // reflect at the south
-  if(mesh->neighbours[SOUTH] == EDGE) {
-#pragma omp parallel for collapse(2)
-    for(int dd = 0; dd < PAD; ++dd) {
-      for(int jj = 0; jj < nx; ++jj) {
-        arr[(PAD - 1 - dd)*nx + jj] = arr[(PAD + dd)*nx + jj];
-      }
-    }
-  }
-#ifdef MPI
-  else if (pack) {
-#pragma omp parallel for collapse(2)
-    for(int dd = 0; dd < PAD; ++dd) {
-      for(int jj = 0; jj < nx; ++jj) {
-        mesh->south_buffer_out[dd*nx+jj] = arr[(PAD+dd)*nx+jj];
-      }
-    }
-
-    MPI_Isend(mesh->south_buffer_out, nx*PAD, MPI_DOUBLE, 
-        mesh->neighbours[SOUTH], 0, MPI_COMM_WORLD, &out_req[SOUTH]);
-    MPI_Irecv(mesh->south_buffer_in, nx*PAD, MPI_DOUBLE,
-        mesh->neighbours[SOUTH], 1, MPI_COMM_WORLD, &in_req[nmessages++]);
-  }
-#endif
-
-  // Unpack the buffers
-#ifdef MPI
-  if(pack) {
-    MPI_Waitall(nmessages, in_req, MPI_STATUSES_IGNORE);
-
-    if(mesh->neighbours[NORTH] != EDGE) {
-#pragma omp parallel for collapse(2)
-      for(int dd = 0; dd < PAD; ++dd) {
-        for(int jj = 0; jj < nx; ++jj) {
-          arr[(ny-PAD+dd)*nx+jj] = mesh->north_buffer_in[dd*nx+jj];
-        }
-      }
-    }
-
-    if(mesh->neighbours[SOUTH] != EDGE) {
-#pragma omp parallel for collapse(2)
-      for(int dd = 0; dd < PAD; ++dd) {
-        for(int jj = 0; jj < nx; ++jj) {
-          arr[dd*nx + jj] = mesh->south_buffer_in[dd*nx+jj];
-        }
-      }
-    }
-
-    if(mesh->neighbours[WEST] != EDGE) {
-#pragma omp parallel for collapse(2)
-      for(int ii = 0; ii < ny; ++ii) {
-        for(int dd = 0; dd < PAD; ++dd) {
-          arr[ii*nx + dd] = mesh->west_buffer_in[ii*PAD+dd];
-        }
-      }
-    }
-
-    if(mesh->neighbours[EAST] != EDGE) {
-#pragma omp parallel for collapse(2)
-      for(int ii = 0; ii < ny; ++ii) {
-        for(int dd = 0; dd < PAD; ++dd) {
-          arr[ii*nx + (nx-PAD+dd)] = mesh->east_buffer_in[ii*PAD+dd];
-        }
-      }
-    }
-  }
-#endif
-
-  STOP_PROFILING(&compute_profile, "communications");
 }
 
