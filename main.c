@@ -59,10 +59,6 @@ int main(int argc, char** argv)
 
     printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
 
-    write_all_ranks_to_visit(
-        mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-        mesh.y_off, mesh.rank, mesh.nranks, state.x, "final_result", tt, elapsed_sim_time);
-
     elapsed_sim_time += mesh.dt;
     if(elapsed_sim_time >= SIM_END) {
       if(mesh.rank == MASTER)
