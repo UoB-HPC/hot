@@ -10,14 +10,19 @@ MAPP_LINKER	  = mpicc
 MAPP_FLAGS	  = $(CFLAGS_$(COMPILER))
 MAPP_LDFLAGS  = 
 
-OBJS  = $(patsubst %.c, obj/$(KERNELS)/%.o, $(wildcard *.c))
-OBJS += $(patsubst %.c, obj/$(KERNELS)/%.o, $(wildcard ../*.c))
+SRC  			 = $(wildcard *.c)
+SRC 			+= $(wildcard ../shared/*.c)
+SRC_CLEAN  = $(subst ../shared/,,$(SRC))
+OBJS 			 = $(patsubst %.c, obj/$(KERNELS)/%.o, $(SRC_CLEAN))
 
 hot: make_build_dir $(OBJS) Makefile
 	$(MAPP_LINKER) $(MAPP_FLAGS) $(OBJS) $(MAPP_LDFLAGS) -o hot.exe
 
 # Rule to make controlling code
 obj/$(KERNELS)/%.o: %.c Makefile 
+	$(MAPP_COMPILER) $(MAPP_FLAGS) $(OPTIONS) -c $< -o $@
+
+obj/$(KERNELS)/%.o: ../shared/%.c Makefile 
 	$(MAPP_COMPILER) $(MAPP_FLAGS) $(OPTIONS) -c $< -o $@
 
 make_build_dir:
