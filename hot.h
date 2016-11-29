@@ -1,29 +1,11 @@
 #pragma once
 
-#include "../shared/shared.h"
-
-#define WIDTH 10.0
-#define HEIGHT 10.0
-#define MAX_DT 0.04
-#define NVARS_TO_COMM 4 // rho, b
+#include "../shared.h"
+#include "../mesh.h"
 
 // Arbitrary values for calculating conduction coefficient
 #define CONDUCTIVITY 25.0
 #define HEAT_CAPACITY 100.0
-
-// Contains all of the state information for the solver
-typedef struct
-{
-  double* Ap;
-  double* b;
-  double* r;
-  double* x;
-  double* p;
-  double* s_x;
-  double* s_y;
-  double* rho;
-
-} State;
 
 // Initialises the CG solver
 double initialise_cg(

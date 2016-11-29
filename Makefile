@@ -5,30 +5,32 @@ CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99
 OPTIONS		  	= -DENABLE_PROFILING -DMPI -DDEBUG
 
 # Default compiler
-MAPP_COMPILER = mpicc
-MAPP_LINKER	  = mpicc
-MAPP_FLAGS	  = $(CFLAGS_$(COMPILER))
-MAPP_LDFLAGS  = 
+MULTI_COMPILER   = mpicc
+MULTI_LINKER     = mpicc
+MULTI_FLAGS      = $(CFLAGS_$(COMPILER))
+MULTI_LDFLAGS    =
+MULTI_BUILD_DIR  = ../obj
+MULTI_DIR 			 = ..
 
 SRC  			 = $(wildcard *.c)
-SRC 			+= $(wildcard ../shared/*.c)
-SRC_CLEAN  = $(subst ../shared/,,$(SRC))
-OBJS 			 = $(patsubst %.c, obj/$(KERNELS)/%.o, $(SRC_CLEAN))
+SRC 			+= $(wildcard $(MULTI_DIR)/*.c)
+SRC_CLEAN  = $(subst $(MULTI_DIR)/,,$(SRC))
+OBJS 			 = $(patsubst %.c, $(MULTI_BUILD_DIR)/$(KERNELS)/%.o, $(SRC_CLEAN))
 
 hot: make_build_dir $(OBJS) Makefile
-	$(MAPP_LINKER) $(MAPP_FLAGS) $(OBJS) $(MAPP_LDFLAGS) -o hot.exe
+	$(MULTI_LINKER) $(MULTI_FLAGS) $(OBJS) $(MULTI_LDFLAGS) -o hot.exe
 
 # Rule to make controlling code
-obj/$(KERNELS)/%.o: %.c Makefile 
-	$(MAPP_COMPILER) $(MAPP_FLAGS) $(OPTIONS) -c $< -o $@
+$(MULTI_BUILD_DIR)/$(KERNELS)/%.o: %.c Makefile 
+	$(MULTI_COMPILER) $(MULTI_FLAGS) $(OPTIONS) -c $< -o $@
 
-obj/$(KERNELS)/%.o: ../shared/%.c Makefile 
-	$(MAPP_COMPILER) $(MAPP_FLAGS) $(OPTIONS) -c $< -o $@
+$(MULTI_BUILD_DIR)/$(KERNELS)/%.o: $(MULTI_DIR)/%.c Makefile 
+	$(MULTI_COMPILER) $(MULTI_FLAGS) $(OPTIONS) -c $< -o $@
 
 make_build_dir:
-	@mkdir -p obj/
-	@mkdir -p obj/$(KERNELS)
+	@mkdir -p $(MULTI_BUILD_DIR)/
+	@mkdir -p $(MULTI_BUILD_DIR)/$(KERNELS)
 
 clean:
-	rm -rf obj/* hot.exe *.vtk *.bov *.dat
+	rm -rf $(MULTI_BUILD_DIR)/* hot.exe *.vtk *.bov *.dat
 

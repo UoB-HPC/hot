@@ -2,44 +2,39 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "../shared/profiler.h"
 #include "hot.h"
+#include "../profiler.h"
+#include "../comms.h"
 
 #define ind0 (ii*nx + jj)
 #define ind1 (ii*(nx+1) + jj)
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
-void solve(
+void solve_diffusion(
     const int nx, const int ny, Mesh* mesh, const double dt, const int niters, double* x, 
     double* r, double* p, const double* rho, double* s_x, double* s_y, 
     double* Ap, const double* edgedx, const double* edgedy)
 {
   // Store initial residual
-  START_PROFILING(&compute_profile);
   double local_old_rr = initialise_cg(
       nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
-  STOP_PROFILING(&compute_profile, "initialise cg");
 
-  double global_old_rr = all_reduce(local_old_rr);
+  double global_old_rr = reduce_all_sum(local_old_rr);
 
   handle_boundary(nx, ny, mesh, p, PACK);
   handle_boundary(nx, ny, mesh, x, PACK);
 
   // TODO: Can one of the allreduces be removed if you use the local_rr more?
   for(int ii = 0; ii < niters; ++ii) {
-    START_PROFILING(&compute_profile);
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
-    STOP_PROFILING(&compute_profile, "calculate alpha");
 
-    double global_pAp = all_reduce(local_pAp);
+    double global_pAp = reduce_all_sum(local_pAp);
 
-    START_PROFILING(&compute_profile);
     const double alpha = global_old_rr/global_pAp;
     const double local_new_rr = calculate_new_rr(nx, ny, alpha, x, p, r, Ap);
-    STOP_PROFILING(&compute_profile, "calculate beta");
 
-    double global_new_rr = all_reduce(local_new_rr);
+    double global_new_rr = reduce_all_sum(local_new_rr);
 
     // Check if the solution has converged
     if(fabs(global_new_rr) < 1.0e-05) {
@@ -48,10 +43,8 @@ void solve(
       break;
     }
 
-    START_PROFILING(&compute_profile);
     const double beta = global_new_rr/global_old_rr;
     update_conjugate(nx, ny, beta, r, p);
-    STOP_PROFILING(&compute_profile, "update conjugate");
 
     handle_boundary(nx, ny, mesh, p, PACK);
     handle_boundary(nx, ny, mesh, x, PACK);
@@ -67,6 +60,8 @@ double initialise_cg(
     const double* x, const double* rho, double* s_x, double* s_y, 
     const double* edgedx, const double* edgedy)
 {
+  START_PROFILING(&compute_profile);
+
   // https://inldigitallibrary.inl.gov/sti/3952796.pdf
   // Take the average of the coefficients at the cells surrounding 
   // each face
@@ -96,6 +91,8 @@ double initialise_cg(
       initial_rr += r[ind0]*r[ind0];
     }
   }
+
+  STOP_PROFILING(&compute_profile, "initialise cg");
   return initial_rr;
 }
 
@@ -104,6 +101,8 @@ double calculate_pAp(
     const int nx, const int ny, const double* s_x, const double* s_y,
     double* p, double* Ap)
 {
+  START_PROFILING(&compute_profile);
+
   // You don't need to use a matrix as the band matrix is fully predictable
   // from the 5pt stencil
   double pAp = 0.0;
@@ -121,6 +120,7 @@ double calculate_pAp(
     }
   }
 
+  STOP_PROFILING(&compute_profile, "calculate alpha");
   return pAp;
 }
 
@@ -128,6 +128,8 @@ double calculate_pAp(
 double calculate_new_rr(
     int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap)
 {
+  START_PROFILING(&compute_profile);
+
   double new_rr = 0.0;
 
 #pragma omp parallel for reduction(+: new_rr)
@@ -140,6 +142,7 @@ double calculate_new_rr(
     }
   }
 
+  STOP_PROFILING(&compute_profile, "calculate new rr");
   return new_rr;
 }
 
@@ -147,6 +150,7 @@ double calculate_new_rr(
 void update_conjugate(
     const int nx, const int ny, const double beta, const double* r, double* p)
 {
+  START_PROFILING(&compute_profile);
 #pragma omp parallel for
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
@@ -154,6 +158,7 @@ void update_conjugate(
       p[ind0] = r[ind0] + beta*p[ind0];
     }
   }
+  STOP_PROFILING(&compute_profile, "update conjugate");
 }
 
 // Prints the vector to std out
