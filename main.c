@@ -43,13 +43,21 @@ int main(int argc, char** argv)
 
   int tt = 0;
   double elapsed_sim_time = 0.0;
-  for(tt = 0; tt < 30; ++tt) {
+  for(tt = 0; tt < mesh.niters; ++tt) {
+    if(mesh.rank == MASTER)
+      printf("step %d\n", tt+1);
+
     START_PROFILING(&wallclock);
+    int end_niters = 0;
+    double end_error = 0.0;
     solve_diffusion(
-        mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, mesh.niters, state.x, 
+        mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, state.x, 
         state.r, state.p, state.rho, state.s_x, state.s_y, 
-        state.Ap, mesh.edgedx, mesh.edgedy);
+        state.Ap, &end_niters, &end_error, mesh.edgedx, mesh.edgedy);
+
     STOP_PROFILING(&wallclock, "wallclock");
+
+    printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
 
     write_all_ranks_to_visit(
         mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
@@ -73,7 +81,7 @@ int main(int argc, char** argv)
 
   if(mesh.rank == MASTER) {
     PRINT_PROFILING_RESULTS(&compute_profile);
-    printf("Wallclock %.2fs, Elapsed Simulation Time %.4fs\n", global_wallclock, elapsed_sim_time);
+    printf("wallclock %.2fs, elapsed simulation time %.4fs\n", global_wallclock, elapsed_sim_time);
   }
 
   write_all_ranks_to_visit(

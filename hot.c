@@ -12,9 +12,10 @@
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
 void solve_diffusion(
-    const int nx, const int ny, Mesh* mesh, const double dt, const int niters, double* x, 
+    const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
     double* r, double* p, const double* rho, double* s_x, double* s_y, 
-    double* Ap, const double* edgedx, const double* edgedy)
+    double* Ap, int* end_niters, double* end_error, const double* edgedx, 
+    const double* edgedy)
 {
   // Store initial residual
   double local_old_rr = initialise_cg(
@@ -26,7 +27,8 @@ void solve_diffusion(
   handle_boundary(nx, ny, mesh, x, PACK);
 
   // TODO: Can one of the allreduces be removed if you use the local_rr more?
-  for(int ii = 0; ii < niters; ++ii) {
+  int ii = 0;
+  for(ii = 0; ii < MAX_INNER_ITERATIONS; ++ii) {
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
 
     double global_pAp = reduce_all_sum(local_pAp);
@@ -38,8 +40,7 @@ void solve_diffusion(
 
     // Check if the solution has converged
     if(fabs(global_new_rr) < 1.0e-05) {
-      if(mesh->rank == MASTER)
-        printf("exiting at iteration %d with new_rr: %.12e\n", ii, global_new_rr);
+      global_old_rr = global_new_rr;
       break;
     }
 
@@ -52,6 +53,9 @@ void solve_diffusion(
     // Store the old squared residual
     global_old_rr = global_new_rr;
   }
+
+  *end_niters = ii;
+  *end_error = global_old_rr;
 }
 
 // Initialises the CG solver
