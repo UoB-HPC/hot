@@ -36,8 +36,8 @@ int main(int argc, char** argv)
       mesh.x_off, mesh.y_off, &state);
 
   write_all_ranks_to_visit(
-      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-      mesh.y_off, mesh.rank, mesh.nranks, state.x, "initial_result", 0, 0.0);
+      mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "initial_result", 0, 0.0);
 
   struct Profile wallclock = {0};
 
@@ -57,7 +57,8 @@ int main(int argc, char** argv)
 
     STOP_PROFILING(&wallclock, "wallclock");
 
-    printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
+    if(mesh.rank == MASTER)
+      printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
 
     elapsed_sim_time += mesh.dt;
     if(elapsed_sim_time >= SIM_END) {
@@ -81,8 +82,8 @@ int main(int argc, char** argv)
   }
 
   write_all_ranks_to_visit(
-      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-      mesh.y_off, mesh.rank, mesh.nranks, state.x, "final_result", 0, elapsed_sim_time);
+      mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "final_result", 0, elapsed_sim_time);
 
   finalise_state(&state);
   finalise_mesh(&mesh);
