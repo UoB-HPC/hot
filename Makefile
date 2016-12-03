@@ -1,12 +1,12 @@
 # User defined parameters
 KERNELS 	  	= omp3
 COMPILER    	= INTEL
-CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99
-OPTIONS		  	= -DENABLE_PROFILING -DDEBUG -DMPI
+CFLAGS_INTEL	= -O3 -g -no-prec-div -xhost -std=gnu99 -qopenmp
+OPTIONS		  	= -DDEBUG -DMPI -DENABLE_PROFILING 
 
 # Default compiler
-MULTI_COMPILER   = mpicc
-MULTI_LINKER     = mpicc
+MULTI_COMPILER   = mpiicc
+MULTI_LINKER     = mpiicc
 MULTI_FLAGS      = $(CFLAGS_$(COMPILER))
 MULTI_LDFLAGS    =
 MULTI_BUILD_DIR  = ../obj

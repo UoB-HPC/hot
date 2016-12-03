@@ -21,12 +21,6 @@ double initialise_cg(
     const double* x, const double* rho, double* s_x, double* s_y, 
     const double* edgedx, const double* edgedy);
 
-#if 0
-// Handles boundary conditions for the problem
-void handle_boundary(
-    const int nx, const int ny, Mesh* mesh, double* arr, const int pack);
-#endif // if 0
-
 // Updates the conjugate from the calculated beta and residual
 void update_conjugate(
     const int nx, const int ny, const double beta, const double* r, double* p);
