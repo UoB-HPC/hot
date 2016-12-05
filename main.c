@@ -16,10 +16,6 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  int rank = MASTER;
-  int nranks = 1;
-  init_mpi(argc, argv, &rank, &nranks);
-
   Mesh mesh = {0};
   mesh.global_nx = atoi(argv[1]);
   mesh.global_ny = atoi(argv[2]);
@@ -28,8 +24,8 @@ int main(int argc, char** argv)
   mesh.width = WIDTH;
   mesh.height = HEIGHT;
   mesh.dt = MAX_DT;
-  mesh.rank = rank;
-  mesh.nranks = nranks;
+  mesh.rank = MASTER;
+  mesh.nranks = 1;
   mesh.niters = atoi(argv[3]);
 
   initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
