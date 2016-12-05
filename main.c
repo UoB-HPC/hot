@@ -32,6 +32,7 @@ int main(int argc, char** argv)
   mesh.nranks = nranks;
   mesh.niters = atoi(argv[3]);
 
+  initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
   initialise_comms(&mesh);
   initialise_mesh(&mesh);
 
