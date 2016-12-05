@@ -37,11 +37,15 @@ int main(int argc, char** argv)
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
       mesh.x_off, mesh.y_off, &state);
 
+#if 0
   write_all_ranks_to_visit(
       mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
       mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "initial_result", 0, 0.0);
+#endif // if 0
 
   struct Profile wallclock = {0};
+
+  START_PROFILING(&wallclock);
 
   int tt = 0;
   double elapsed_sim_time = 0.0;
@@ -49,15 +53,12 @@ int main(int argc, char** argv)
     if(mesh.rank == MASTER)
       printf("step %d\n", tt+1);
 
-    START_PROFILING(&wallclock);
     int end_niters = 0;
     double end_error = 0.0;
     solve_diffusion(
         mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, state.x, 
         state.r, state.p, state.rho, state.s_x, state.s_y, 
         state.Ap, &end_niters, &end_error, mesh.edgedx, mesh.edgedy);
-
-    STOP_PROFILING(&wallclock, "wallclock");
 
     if(mesh.rank == MASTER)
       printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
@@ -70,17 +71,12 @@ int main(int argc, char** argv)
     }
   }
 
-  double global_wallclock = 0.0;
-  if(tt > 0) {
-#ifdef MPI
-    struct ProfileEntry pe = profiler_get_profile_entry(&wallclock, "wallclock");
-    MPI_Reduce(&pe.time, &global_wallclock, 1, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
-#endif
-  }
+  STOP_PROFILING(&wallclock, "wallclock");
 
   if(mesh.rank == MASTER) {
+    struct ProfileEntry pe = profiler_get_profile_entry(&wallclock, "wallclock");
     PRINT_PROFILING_RESULTS(&compute_profile);
-    printf("wallclock %.2fs, elapsed simulation time %.4fs\n", global_wallclock, elapsed_sim_time);
+    printf("wallclock %.2fs, elapsed simulation time %.4fs\n", pe.time, elapsed_sim_time);
   }
 
   write_all_ranks_to_visit(

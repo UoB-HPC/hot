@@ -1,5 +1,5 @@
 # User defined parameters
-KERNELS 	  	= omp3
+KERNELS 	  	= omp4
 COMPILER    	= CRAY
 CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99
 CFLAGS_CRAY	  = -hlist=a -lrt

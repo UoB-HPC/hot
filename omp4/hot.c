@@ -69,9 +69,8 @@ double initialise_cg(
   // https://inldigitallibrary.inl.gov/sti/3952796.pdf
   // Take the average of the coefficients at the cells surrounding 
   // each face
-#pragma omp parallel for
+#pragma omp target teams distribute parallel for
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
-#pragma omp simd
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
       s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
         (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
@@ -81,9 +80,8 @@ double initialise_cg(
   }
 
   double initial_rr = 0.0;
-#pragma omp parallel for reduction(+: initial_rr)
+#pragma omp target teams distribute parallel for reduction(+: initial_rr)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       r[ind0] = x[ind0] -
         ((1.0+s_y[ind1]+s_x[ind1]+s_x[ind1+1]+s_y[ind1+(nx+1)])*x[ind0]
@@ -110,9 +108,8 @@ double calculate_pAp(
   // You don't need to use a matrix as the band matrix is fully predictable
   // from the 5pt stencil
   double pAp = 0.0;
-#pragma omp parallel for reduction(+: pAp)
+#pragma omp target teams distribute parallel for reduction(+: pAp)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       Ap[ind0] = 
         (1.0+s_y[ind1]+s_x[ind1]+s_x[ind1+1]+s_y[ind1+(nx+1)])*p[ind0]
@@ -136,9 +133,8 @@ double calculate_new_rr(
 
   double new_rr = 0.0;
 
-#pragma omp parallel for reduction(+: new_rr)
+#pragma omp target teams distribute parallel for reduction(+: new_rr)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       x[ind0] += alpha*p[ind0];
       r[ind0] -= alpha*Ap[ind0];
@@ -155,9 +151,8 @@ void update_conjugate(
     const int nx, const int ny, const double beta, const double* r, double* p)
 {
   START_PROFILING(&compute_profile);
-#pragma omp parallel for
+#pragma omp target teams distribute parallel for
   for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       p[ind0] = r[ind0] + beta*p[ind0];
     }
