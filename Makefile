@@ -1,14 +1,12 @@
 # User defined parameters
-KERNELS 	  	= omp3
-COMPILER    	= INTEL
+KERNELS 	  	= omp4
+COMPILER    	= CRAY
 CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99 
 CFLAGS_CRAY	  = -hlist=a -lrt
 OPTIONS		  	= -DENABLE_PROFILING -DMPI -DDEBUG
 
 # Default compiler
-MULTI_COMPILER  = mpicc
-#MULTI_COMPILER  = mpiicc
-#MULTI_COMPILER  = mpicc
+MULTI_COMPILER  = cc
 MULTI_LINKER    = $(MULTI_COMPILER)
 MULTI_FLAGS     = $(CFLAGS_$(COMPILER))
 MULTI_LDFLAGS   =

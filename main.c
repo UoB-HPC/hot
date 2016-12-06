@@ -73,12 +73,6 @@ int main(int argc, char** argv)
     printf("wallclock %.2fs, elapsed simulation time %.4fs\n", pe.time, elapsed_sim_time);
   }
 
-  char name[200];
-  sprintf(name, "final%d", mesh.rank);
-  write_to_visit(
-      mesh.local_nx, mesh.local_ny, mesh.x_off, mesh.y_off, 
-      state.p, name, 0, 0.0);
-
 #if 0
   write_all_ranks_to_visit(
       mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 

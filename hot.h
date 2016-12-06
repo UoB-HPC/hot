@@ -4,7 +4,7 @@
 #include "../mesh.h"
 
 // Arbitrary values for calculating conduction coefficient
-#define CONDUCTIVITY 25.0
+#define CONDUCTIVITY 1.0//25.0
 #define HEAT_CAPACITY 1.0//100.0
 #define MAX_INNER_ITERATIONS 10000
 
