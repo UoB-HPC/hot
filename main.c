@@ -37,12 +37,6 @@ int main(int argc, char** argv)
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
       mesh.x_off, mesh.y_off, &state);
 
-#if 0
-  write_all_ranks_to_visit(
-      mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "initial_result", 0, 0.0);
-#endif // if 0
-
   struct Profile wallclock = {0};
 
   START_PROFILING(&wallclock);

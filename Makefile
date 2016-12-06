@@ -1,7 +1,7 @@
 # User defined parameters
 KERNELS 	  	= omp3
 COMPILER    	= INTEL
-CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99
+CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -xhost -std=gnu99 
 CFLAGS_CRAY	  = -hlist=a -lrt
 OPTIONS		  	= -DENABLE_PROFILING -DMPI -DDEBUG
 

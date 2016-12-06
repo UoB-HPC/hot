@@ -13,7 +13,7 @@
 // of the context of the problem etc.
 void solve_diffusion(
     const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
-    double* r, double* p, const double* rho, double* s_x, double* s_y, 
+    double* r, double* p, double* rho, double* s_x, double* s_y, 
     double* Ap, int* end_niters, double* end_error, const double* edgedx, 
     const double* edgedy)
 {
@@ -23,20 +23,21 @@ void solve_diffusion(
 
   double global_old_r2 = reduce_all_sum(local_old_r2);
 
+  handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
+  handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
+
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
   for(ii = 0; ii < MAX_INNER_ITERATIONS; ++ii) {
-    handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
-    handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
 
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
-
-    double global_pAp = reduce_all_sum(local_pAp);
-
+    const double global_pAp = reduce_all_sum(local_pAp);
     const double alpha = global_old_r2/global_pAp;
-    const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap);
 
-    double global_new_r2 = reduce_all_sum(local_new_r2);
+    const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap);
+    const double global_new_r2 = reduce_all_sum(local_new_r2);
+    const double beta = global_new_r2/global_old_r2;
+    handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
 
     // Check if the solution has converged
     if(fabs(global_new_r2) < 1.0e-10) {
@@ -44,8 +45,8 @@ void solve_diffusion(
       break;
     }
 
-    const double beta = global_new_r2/global_old_r2;
     update_conjugate(nx, ny, beta, r, p);
+    handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
 
     // Store the old squared residual
     global_old_r2 = global_new_r2;
@@ -67,11 +68,17 @@ double initialise_cg(
   // Take the average of the coefficients at the cells surrounding 
   // each face
 #pragma omp parallel for
-  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
       s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
         (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
+    }
+  }
+#pragma omp parallel for
+  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
+#pragma omp simd
+    for(int jj = PAD; jj < nx-PAD; ++jj) {
       s_y[ind0] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
         (2.0*rho[ind0]*rho[ind0-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
     }
@@ -83,7 +90,7 @@ double initialise_cg(
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       r[ind0] = x[ind0] -
-        ((1.0+s_y[ind0]+s_x[ind1]+s_x[ind1+1]+s_y[ind0+nx])*x[ind0]
+        ((s_y[ind0]+s_x[ind1]+1.0+s_x[ind1+1]+s_y[ind0+nx])*x[ind0]
          - s_y[ind0]*x[ind0-nx]
          - s_x[ind1]*x[ind0-1] 
          - s_x[ind1+1]*x[ind0+1]
@@ -112,7 +119,7 @@ double calculate_pAp(
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       Ap[ind0] = 
-        (1.0+s_y[ind0]+s_x[ind1]+s_x[ind1+1]+s_y[ind0+nx])*p[ind0]
+        (s_y[ind0]+s_x[ind1]+1.0+s_x[ind1+1]+s_y[ind0+nx])*p[ind0]
         - s_y[ind0]*p[ind0-nx]
         - s_x[ind1]*p[ind0-1] 
         - s_x[ind1+1]*p[ind0+1]
