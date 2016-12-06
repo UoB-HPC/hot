@@ -18,44 +18,41 @@ void solve_diffusion(
     const double* edgedy)
 {
   // Store initial residual
-  double local_old_rr = initialise_cg(
+  double local_old_r2 = initialise_cg(
       nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
 
-  double global_old_rr = reduce_all_sum(local_old_rr);
+  double global_old_r2 = reduce_all_sum(local_old_r2);
 
-  handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
-  handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
-
-  // TODO: Can one of the allreduces be removed if you use the local_rr more?
+  // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
   for(ii = 0; ii < MAX_INNER_ITERATIONS; ++ii) {
+    handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
+    handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
+
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
 
     double global_pAp = reduce_all_sum(local_pAp);
 
-    const double alpha = global_old_rr/global_pAp;
-    const double local_new_rr = calculate_new_rr(nx, ny, alpha, x, p, r, Ap);
+    const double alpha = global_old_r2/global_pAp;
+    const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap);
 
-    double global_new_rr = reduce_all_sum(local_new_rr);
+    double global_new_r2 = reduce_all_sum(local_new_r2);
 
     // Check if the solution has converged
-    if(fabs(global_new_rr) < 1.0e-05) {
-      global_old_rr = global_new_rr;
+    if(fabs(global_new_r2) < 1.0e-10) {
+      global_old_r2 = global_new_r2;
       break;
     }
 
-    const double beta = global_new_rr/global_old_rr;
+    const double beta = global_new_r2/global_old_r2;
     update_conjugate(nx, ny, beta, r, p);
 
-    handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
-    handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
-
     // Store the old squared residual
-    global_old_rr = global_new_rr;
+    global_old_r2 = global_new_r2;
   }
 
   *end_niters = ii;
-  *end_error = global_old_rr;
+  *end_error = global_old_r2;
 }
 
 // Initialises the CG solver
@@ -75,29 +72,29 @@ double initialise_cg(
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
       s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
         (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
-      s_y[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
+      s_y[ind0] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
         (2.0*rho[ind0]*rho[ind0-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
     }
   }
 
-  double initial_rr = 0.0;
-#pragma omp parallel for reduction(+: initial_rr)
+  double initial_r2 = 0.0;
+#pragma omp parallel for reduction(+: initial_r2)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       r[ind0] = x[ind0] -
-        ((1.0+s_y[ind1]+s_x[ind1]+s_x[ind1+1]+s_y[ind1+(nx+1)])*x[ind0]
-         - s_y[ind1]*x[ind0-nx]
+        ((1.0+s_y[ind0]+s_x[ind1]+s_x[ind1+1]+s_y[ind0+nx])*x[ind0]
+         - s_y[ind0]*x[ind0-nx]
          - s_x[ind1]*x[ind0-1] 
          - s_x[ind1+1]*x[ind0+1]
-         - s_y[ind1+(nx+1)]*x[ind0+nx]);
+         - s_y[ind0+nx]*x[ind0+nx]);
       p[ind0] = r[ind0];
-      initial_rr += r[ind0]*r[ind0];
+      initial_r2 += r[ind0]*r[ind0];
     }
   }
 
   STOP_PROFILING(&compute_profile, "initialise cg");
-  return initial_rr;
+  return initial_r2;
 }
 
 // Calculates a value for alpha
@@ -115,11 +112,11 @@ double calculate_pAp(
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       Ap[ind0] = 
-        (1.0+s_y[ind1]+s_x[ind1]+s_x[ind1+1]+s_y[ind1+(nx+1)])*p[ind0]
-        - s_y[ind1]*p[ind0-nx]
+        (1.0+s_y[ind0]+s_x[ind1]+s_x[ind1+1]+s_y[ind0+nx])*p[ind0]
+        - s_y[ind0]*p[ind0-nx]
         - s_x[ind1]*p[ind0-1] 
         - s_x[ind1+1]*p[ind0+1]
-        - s_y[ind1+(nx+1)]*p[ind0+nx];
+        - s_y[ind0+nx]*p[ind0+nx];
       pAp += p[ind0]*Ap[ind0];
     }
   }
@@ -129,25 +126,25 @@ double calculate_pAp(
 }
 
 // Updates the current guess using the calculated alpha
-double calculate_new_rr(
+double calculate_new_r2(
     int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap)
 {
   START_PROFILING(&compute_profile);
 
-  double new_rr = 0.0;
+  double new_r2 = 0.0;
 
-#pragma omp parallel for reduction(+: new_rr)
+#pragma omp parallel for reduction(+: new_r2)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       x[ind0] += alpha*p[ind0];
       r[ind0] -= alpha*Ap[ind0];
-      new_rr += r[ind0]*r[ind0];
+      new_r2 += r[ind0]*r[ind0];
     }
   }
 
-  STOP_PROFILING(&compute_profile, "calculate new rr");
-  return new_rr;
+  STOP_PROFILING(&compute_profile, "calculate new r2");
+  return new_r2;
 }
 
 // Updates the conjugate from the calculated beta and residual

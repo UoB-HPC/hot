@@ -4,7 +4,7 @@
 #include "../mesh.h"
 
 // Arbitrary values for calculating conduction coefficient
-#define CONDUCTIVITY 1.0//25.0
+#define CONDUCTIVITY 25.0
 #define HEAT_CAPACITY 1.0//100.0
 #define MAX_INNER_ITERATIONS 10000
 
@@ -31,7 +31,7 @@ double calculate_pAp(
     double* p, double* Ap);
 
 // Updates the current guess using the calculated alpha
-double calculate_new_rr(
+double calculate_new_r2(
     int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap);
 
 // Prints the vector to std out
