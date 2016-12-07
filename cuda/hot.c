@@ -3,12 +3,10 @@
 #include <string.h>
 #include <math.h>
 #include "hot.h"
+#include "../cuda/config.h"
 #include "../hot_interface.h"
 #include "../../profiler.h"
 #include "../../comms.h"
-
-#define ind0 (ii*nx + jj)
-#define ind1 (ii*(nx+1) + jj)
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
@@ -63,46 +61,21 @@ double initialise_cg(
     const double* x, const double* rho, double* s_x, double* s_y, 
     const double* edgedx, const double* edgedy)
 {
-  START_PROFILING(&compute_profile);
+  int nthreads_per_block = ceil((nx+1)*ny/(double)NBLOCKS);
+  calc_s_x<<<nthreads_per_block, NBLOCKS>>>(
+      dt, s_x, rho, edgedx);
+  gpu_check(cudaDeviceSynchronize());
 
-  // https://inldigitallibrary.inl.gov/sti/3952796.pdf
-  // Take the average of the coefficients at the cells surrounding 
-  // each face
-#pragma omp parallel for
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
-      s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
-        (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
-    }
-  }
-#pragma omp parallel for
-  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      s_y[ind0] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
-        (2.0*rho[ind0]*rho[ind0-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
-    }
-  }
+  nthreads_per_block = ceil(nx*(ny+1)/(double)NBLOCKS);
+  calc_s_y<<<nthreads_per_block, NBLOCKS>>>(
+      dt, s_y, rho, edgedy);
+  gpu_check(cudaDeviceSynchronize());
 
   double initial_r2 = 0.0;
-#pragma omp parallel for reduction(+: initial_r2)
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      r[ind0] = x[ind0] -
-        ((s_y[ind0]+s_x[ind1]+1.0+s_x[ind1+1]+s_y[ind0+nx])*x[ind0]
-         - s_y[ind0]*x[ind0-nx]
-         - s_x[ind1]*x[ind0-1] 
-         - s_x[ind1+1]*x[ind0+1]
-         - s_y[ind0+nx]*x[ind0+nx]);
-      p[ind0] = r[ind0];
-      initial_r2 += r[ind0]*r[ind0];
-    }
-  }
-
-  STOP_PROFILING(&compute_profile, "initialise cg");
-  return initial_r2;
+  nthreads_per_block = ceil(nx*ny/(double)NBLOCKS);
+  calc_initial_r2<<<nthreads_per_block, NBLOCKS>>>(
+      dt, s_y, rho, edgedy); 
+  gpu_check(cudaDeviceSynchronize());
 }
 
 // Calculates a value for alpha
@@ -111,23 +84,9 @@ double calculate_pAp(
     double* p, double* Ap)
 {
   START_PROFILING(&compute_profile);
-
-  // You don't need to use a matrix as the band matrix is fully predictable
-  // from the 5pt stencil
   double pAp = 0.0;
-#pragma omp parallel for reduction(+: pAp)
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      Ap[ind0] = 
-        (s_y[ind0]+s_x[ind1]+1.0+s_x[ind1+1]+s_y[ind0+nx])*p[ind0]
-        - s_y[ind0]*p[ind0-nx]
-        - s_x[ind1]*p[ind0-1] 
-        - s_x[ind1+1]*p[ind0+1]
-        - s_y[ind0+nx]*p[ind0+nx];
-      pAp += p[ind0]*Ap[ind0];
-    }
-  }
+  calc_pAp<<<nthreads_per_block, NBLOCKS>>>(
+
 
   STOP_PROFILING(&compute_profile, "calculate alpha");
   return pAp;

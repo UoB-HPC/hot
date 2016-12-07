@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "hot.h"
+#include "hot_interface.h"
 #include "../profiler.h"
 #include "../comms.h"
 #include "../shared.h"

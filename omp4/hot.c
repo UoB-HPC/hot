@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "../hot.h"
+#include "hot.h"
 #include "../../profiler.h"
 #include "../../comms.h"
 
