@@ -7,6 +7,10 @@
 #define HEAT_CAPACITY 1.0//100.0
 #define MAX_INNER_ITERATIONS 10000
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Performs the CG solve
 void solve_diffusion(
     const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
@@ -14,3 +18,6 @@ void solve_diffusion(
     double* Ap, int* end_niters, double* end_error, double* reduce_array,
     const double* edgedx, const double* edgedy);
 
+#ifdef __cplusplus
+}
+#endif

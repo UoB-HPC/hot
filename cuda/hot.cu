@@ -74,32 +74,12 @@ double initialise_cg(
   gpu_check(cudaDeviceSynchronize());
 
   nblocks = ceil(nx*ny/(double)NTHREADS);
-  printf("%d %d %d %d\n", nx, ny, nblocks, NTHREADS);
   calc_initial_r2<<<nblocks, NTHREADS>>>(
       nx, ny, s_x, s_y, x, p, r, reduce_array);
   gpu_check(cudaDeviceSynchronize());
 
-  double* temp1 = (double*)malloc(sizeof(double)*nx*ny);
-  sync_data(nx*ny, &r, &temp1, RECV);
-  double src1 = 0.0;
-  for(int ii = 0; ii < nx*ny; ++ii) {
-    src1+=temp1[ii]*temp1[ii];
-  }
-  printf("%e\n", src1);
-
-  double* temp = (double*)malloc(sizeof(double)*nblocks);
-  sync_data(nblocks, &reduce_array, &temp, RECV);
-  double src = 0.0;
-  for(int ii = 0; ii < nblocks; ++ii) {
-    src+=temp[ii];
-  }
-  printf("%e\n", src);
-
   double initial_r2 = 0.0;
   finish_sum_reduce(nblocks, reduce_array, &initial_r2);
-
-  printf("init %d %e\n", nblocks, initial_r2);
-
   return initial_r2;
 }
 
