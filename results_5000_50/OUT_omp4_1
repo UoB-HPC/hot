@@ -1,0 +1,245 @@
+rm -rf ../obj/* hot.cuda *.vtk *.bov *.dat *.optrpt *.cub *.ptx
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c main.c -o ../obj/main.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c omp4/hot.c -o ../obj/omp4/hot.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../omp4/data.c -o ../obj/omp4/data.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../omp4/halos.c -o ../obj/omp4/halos.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../omp4/shared.c -o ../obj/omp4/shared.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../comms.c -o ../obj/comms.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../mesh.c -o ../obj/mesh.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../profiler.c -o ../obj/profiler.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../shared.c -o ../obj/shared.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../state.c -o ../obj/state.o
+
+  for(int ii = 0; ii < local_ny+1; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 59
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < local_ny; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 63
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < local_nx+1; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 67
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < local_nx; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 71
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < local_nx*local_ny; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 87
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < (local_nx+1)*(local_ny+1); ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 95
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < local_ny; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 117
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = 0; ii < local_ny; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/data.c, Line = 127
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+Cray C : Version 8.5.5 (20161018192458_ea2a5395960bcf0b21601dab3dff40dd5608597c)
+Total warnings detected in ../omp4/data.c: 8
+
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = omp4/hot.c, Line = 72
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
+CC-7256 craycc: WARNING File = omp4/hot.c, Line = 79
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = omp4/hot.c, Line = 88
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = omp4/hot.c, Line = 116
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = omp4/hot.c, Line = 141
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+  for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = omp4/hot.c, Line = 159
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+Cray C : Version 8.5.5 (20161018192458_ea2a5395960bcf0b21601dab3dff40dd5608597c)
+Total warnings detected in omp4/hot.c: 6
+
+      for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 28
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 41
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int dd = 0; dd < PAD; ++dd) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 55
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int dd = 0; dd < PAD; ++dd) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 69
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 87
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 98
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int dd = 0; dd < PAD; ++dd) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 110
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+      for(int dd = 0; dd < PAD; ++dd) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 121
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+    for(int dd = 0; dd < PAD; ++dd) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 137
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+    for(int dd = 0; dd < PAD; ++dd) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 146
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+    for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 155
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+    for(int ii = PAD; ii < ny-PAD; ++ii) {
+CC-7256 craycc: WARNING File = ../omp4/halos.c, Line = 164
+   An OpenMP parallel construct in a target region is limited to a single thread.
+
+Cray C : Version 8.5.5 (20161018192458_ea2a5395960bcf0b21601dab3dff40dd5608597c)
+Total warnings detected in ../omp4/halos.c: 12
+cc  ../obj/main.o  ../obj/omp4/hot.o  ../obj/omp4/data.o  ../obj/omp4/halos.o  ../obj/omp4/shared.o  ../obj/comms.o  ../obj/mesh.o  ../obj/profiler.o  ../obj/shared.o  ../obj/state.o -lrt -hlist=a -lm -o hot.omp4
+rank 0 neighbours -1 -1 -1 -1
+Problem dimensions 5000x5000 for 50 iterations.
+step 1
+finished on diffusion iteration 100 with error 1.280224e+04
+step 2
+finished on diffusion iteration 100 with error 2.355150e+03
+step 3
+finished on diffusion iteration 100 with error 1.684257e+02
+step 4
+finished on diffusion iteration 100 with error 6.744766e+01
+step 5
+finished on diffusion iteration 100 with error 1.560765e+01
+step 6
+finished on diffusion iteration 100 with error 1.052808e+01
+step 7
+finished on diffusion iteration 100 with error 3.567445e+00
+step 8
+finished on diffusion iteration 100 with error 2.974531e+00
+step 9
+finished on diffusion iteration 100 with error 1.220647e+00
+step 10
+finished on diffusion iteration 100 with error 1.139257e+00
+step 11
+finished on diffusion iteration 100 with error 5.249681e-01
+step 12
+finished on diffusion iteration 100 with error 5.248508e-01
+step 13
+finished on diffusion iteration 100 with error 2.616373e-01
+step 14
+finished on diffusion iteration 100 with error 2.738893e-01
+step 15
+finished on diffusion iteration 100 with error 1.446233e-01
+step 16
+finished on diffusion iteration 100 with error 1.564670e-01
+step 17
+finished on diffusion iteration 100 with error 8.636489e-02
+step 18
+finished on diffusion iteration 100 with error 9.579983e-02
+step 19
+finished on diffusion iteration 100 with error 5.477622e-02
+step 20
+finished on diffusion iteration 100 with error 6.197809e-02
+step 21
+finished on diffusion iteration 100 with error 3.646524e-02
+step 22
+finished on diffusion iteration 100 with error 4.194350e-02
+step 23
+finished on diffusion iteration 100 with error 2.526163e-02
+step 24
+finished on diffusion iteration 100 with error 2.946974e-02
+step 25
+finished on diffusion iteration 100 with error 1.809245e-02
+step 26
+finished on diffusion iteration 100 with error 2.137171e-02
+step 27
+finished on diffusion iteration 100 with error 1.332775e-02
+step 28
+finished on diffusion iteration 100 with error 1.592336e-02
+step 29
+finished on diffusion iteration 100 with error 1.005661e-02
+step 30
+finished on diffusion iteration 100 with error 1.214301e-02
+step 31
+finished on diffusion iteration 100 with error 7.746891e-03
+step 32
+finished on diffusion iteration 100 with error 9.448787e-03
+step 33
+finished on diffusion iteration 100 with error 6.075664e-03
+step 34
+finished on diffusion iteration 100 with error 7.483162e-03
+step 35
+finished on diffusion iteration 100 with error 4.840285e-03
+step 36
+finished on diffusion iteration 100 with error 6.019361e-03
+step 37
+finished on diffusion iteration 100 with error 3.909767e-03
+step 38
+finished on diffusion iteration 100 with error 4.909392e-03
+step 39
+finished on diffusion iteration 100 with error 3.197152e-03
+step 40
+finished on diffusion iteration 100 with error 4.054167e-03
+step 41
+finished on diffusion iteration 100 with error 2.643305e-03
+step 42
+finished on diffusion iteration 100 with error 3.385774e-03
+step 43
+finished on diffusion iteration 100 with error 2.207123e-03
+step 44
+finished on diffusion iteration 100 with error 2.856683e-03
+step 45
+finished on diffusion iteration 100 with error 1.859476e-03
+step 46
+finished on diffusion iteration 100 with error 2.432990e-03
+step 47
+finished on diffusion iteration 100 with error 1.579346e-03
+step 48
+finished on diffusion iteration 100 with error 2.090097e-03
+step 49
+finished on diffusion iteration 100 with error 1.351332e-03
+step 50
+finished on diffusion iteration 100 with error 1.809883e-03
+
+-------------------------------------------------------------
+
+Profiling Results:
+
+Kernel Name                               Calls                 Runtime (s)
+initialise cg                                50                  1.10952945
+communications                            10050                  0.00914495
+calculate alpha                            5000                 62.83003412
+calculate new r2                           5000                 45.54381573
+update conjugate                           5000                  0.01792292
+
+Total elapsed time: 109.510s, entries * are excluded.
+
+-------------------------------------------------------------
+
+wallclock 109.67s, elapsed simulation time 0.0600s
+Application 1820121 resources: utime ~96s, stime ~15s, Rss ~93964, inblocks ~696, outblocks ~715
