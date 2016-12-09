@@ -15,13 +15,12 @@
 void solve_diffusion(
     const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
     double* r, double* p, double* rho, double* s_x, double* s_y, 
-    double* Ap, int* end_niters, double* end_error, const double* edgedx, 
-    const double* edgedy)
+    double* Ap, int* end_niters, double* end_error, double* reduce_array,
+    const double* edgedx, const double* edgedy)
 {
   // Store initial residual
   double local_old_r2 = initialise_cg(
       nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
-
   double global_old_r2 = reduce_all_sum(local_old_r2);
 
   handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);

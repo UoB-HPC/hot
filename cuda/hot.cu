@@ -3,24 +3,26 @@
 #include <string.h>
 #include <math.h>
 #include "hot.h"
-#include "../cuda/config.h"
 #include "../hot_interface.h"
+#include "../../cuda/shared.h"
 #include "../../profiler.h"
 #include "../../comms.h"
+#include "kernels.k"
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
 void solve_diffusion(
     const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
     double* r, double* p, double* rho, double* s_x, double* s_y, 
-    double* Ap, int* end_niters, double* end_error, const double* edgedx, 
-    const double* edgedy)
+    double* Ap, int* end_niters, double* end_error, double* reduce_array,
+    const double* edgedx, const double* edgedy)
 {
   // Store initial residual
   double local_old_r2 = initialise_cg(
-      nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
+      nx, ny, dt, p, r, x, rho, s_x, s_y, reduce_array, edgedx, edgedy);
 
-  double global_old_r2 = reduce_all_sum(local_old_r2);
+  double global_old_r2 = reduce_all_sum(
+      local_old_r2);
 
   handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
   handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
@@ -29,11 +31,11 @@ void solve_diffusion(
   int ii = 0;
   for(ii = 0; ii < MAX_INNER_ITERATIONS; ++ii) {
 
-    const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
+    const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap, reduce_array);
     const double global_pAp = reduce_all_sum(local_pAp);
     const double alpha = global_old_r2/global_pAp;
 
-    const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap);
+    const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap, reduce_array);
     const double global_new_r2 = reduce_all_sum(local_new_r2);
     const double beta = global_new_r2/global_old_r2;
     handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
@@ -58,58 +60,79 @@ void solve_diffusion(
 // Initialises the CG solver
 double initialise_cg(
     const int nx, const int ny, const double dt, double* p, double* r,
-    const double* x, const double* rho, double* s_x, double* s_y, 
+    const double* x, const double* rho, double* s_x, double* s_y, double* reduce_array,
     const double* edgedx, const double* edgedy)
 {
-  int nthreads_per_block = ceil((nx+1)*ny/(double)NBLOCKS);
-  calc_s_x<<<nthreads_per_block, NBLOCKS>>>(
-      dt, s_x, rho, edgedx);
+  int nblocks = ceil((nx+1)*ny/(double)NTHREADS);
+  calc_s_x<<<nblocks, NTHREADS>>>(
+      nx, ny, dt, s_x, rho, edgedx);
   gpu_check(cudaDeviceSynchronize());
 
-  nthreads_per_block = ceil(nx*(ny+1)/(double)NBLOCKS);
-  calc_s_y<<<nthreads_per_block, NBLOCKS>>>(
-      dt, s_y, rho, edgedy);
+  nblocks = ceil(nx*(ny+1)/(double)NTHREADS);
+  calc_s_y<<<nblocks, NTHREADS>>>(
+      nx, ny, dt, s_y, rho, edgedy);
   gpu_check(cudaDeviceSynchronize());
+
+  nblocks = ceil(nx*ny/(double)NTHREADS);
+  printf("%d %d %d %d\n", nx, ny, nblocks, NTHREADS);
+  calc_initial_r2<<<nblocks, NTHREADS>>>(
+      nx, ny, s_x, s_y, x, p, r, reduce_array);
+  gpu_check(cudaDeviceSynchronize());
+
+  double* temp1 = (double*)malloc(sizeof(double)*nx*ny);
+  sync_data(nx*ny, &r, &temp1, RECV);
+  double src1 = 0.0;
+  for(int ii = 0; ii < nx*ny; ++ii) {
+    src1+=temp1[ii]*temp1[ii];
+  }
+  printf("%e\n", src1);
+
+  double* temp = (double*)malloc(sizeof(double)*nblocks);
+  sync_data(nblocks, &reduce_array, &temp, RECV);
+  double src = 0.0;
+  for(int ii = 0; ii < nblocks; ++ii) {
+    src+=temp[ii];
+  }
+  printf("%e\n", src);
 
   double initial_r2 = 0.0;
-  nthreads_per_block = ceil(nx*ny/(double)NBLOCKS);
-  calc_initial_r2<<<nthreads_per_block, NBLOCKS>>>(
-      dt, s_y, rho, edgedy); 
-  gpu_check(cudaDeviceSynchronize());
+  finish_sum_reduce(nblocks, reduce_array, &initial_r2);
+
+  printf("init %d %e\n", nblocks, initial_r2);
+
+  return initial_r2;
 }
 
 // Calculates a value for alpha
 double calculate_pAp(
-    const int nx, const int ny, const double* s_x, const double* s_y,
-    double* p, double* Ap)
+    const int nx, const int ny, const double* s_x, 
+    const double* s_y, double* p, double* Ap, double* reduce_array)
 {
   START_PROFILING(&compute_profile);
+  int nblocks = ceil(nx*ny/(double)NTHREADS);
+  calc_pAp<<<nblocks, NTHREADS>>>(
+      nx, ny, s_x, s_y, p, Ap, reduce_array);
+  gpu_check(cudaDeviceSynchronize());
+
   double pAp = 0.0;
-  calc_pAp<<<nthreads_per_block, NBLOCKS>>>(
-
-
+  finish_sum_reduce(nblocks, reduce_array, &pAp);
   STOP_PROFILING(&compute_profile, "calculate alpha");
   return pAp;
 }
 
 // Updates the current guess using the calculated alpha
 double calculate_new_r2(
-    int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap)
+    int nx, int ny, double alpha, double* x, double* p, double* r, 
+    double* Ap, double* reduce_array)
 {
   START_PROFILING(&compute_profile);
 
+  int nblocks = ceil(nx*ny/(double)NTHREADS);
+  calc_new_r2<<<nblocks, NTHREADS>>>(nx, ny, alpha, x, p, r, Ap, reduce_array);
+  gpu_check(cudaDeviceSynchronize());
+
   double new_r2 = 0.0;
-
-#pragma omp parallel for reduction(+: new_r2)
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      x[ind0] += alpha*p[ind0];
-      r[ind0] -= alpha*Ap[ind0];
-      new_r2 += r[ind0]*r[ind0];
-    }
-  }
-
+  finish_sum_reduce(nblocks, reduce_array, &new_r2);
   STOP_PROFILING(&compute_profile, "calculate new r2");
   return new_r2;
 }
@@ -119,14 +142,10 @@ void update_conjugate(
     const int nx, const int ny, const double beta, const double* r, double* p)
 {
   START_PROFILING(&compute_profile);
-#pragma omp parallel for
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
-#pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
-      p[ind0] = r[ind0] + beta*p[ind0];
-    }
-  }
-  STOP_PROFILING(&compute_profile, "update conjugate");
+
+  int nblocks = ceil(nx*ny/(double)NTHREADS);
+  update_p<<<nblocks, NTHREADS>>>(nx, ny, beta, r, p);
+  gpu_check(cudaDeviceSynchronize());
 }
 
 // Prints the vector to std out

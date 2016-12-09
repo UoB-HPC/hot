@@ -41,6 +41,10 @@ int main(int argc, char** argv)
 
   START_PROFILING(&wallclock);
 
+  write_all_ranks_to_visit(
+      mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "final_result", 0, 0.0);
+
   int tt = 0;
   double elapsed_sim_time = 0.0;
   for(tt = 0; tt < mesh.niters; ++tt) {
@@ -52,7 +56,7 @@ int main(int argc, char** argv)
     solve_diffusion(
         mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, state.x, 
         state.r, state.p, state.rho, state.s_x, state.s_y, 
-        state.Ap, &end_niters, &end_error, mesh.edgedx, mesh.edgedy);
+        state.Ap, &end_niters, &end_error, state.reduce_array, mesh.edgedx, mesh.edgedy);
 
     if(mesh.rank == MASTER)
       printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
