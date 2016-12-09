@@ -5,7 +5,8 @@
 // Arbitrary values for calculating conduction coefficient
 #define CONDUCTIVITY 1.0//25.0
 #define HEAT_CAPACITY 1.0//100.0
-#define MAX_INNER_ITERATIONS 10000
+#define MAX_INNER_ITERATIONS 100
+#define MAX_HOT_DT 0.0004
 
 #ifdef __cplusplus
 extern "C" {

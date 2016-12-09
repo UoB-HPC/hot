@@ -126,6 +126,8 @@ void update_conjugate(
   int nblocks = ceil(nx*ny/(double)NTHREADS);
   update_p<<<nblocks, NTHREADS>>>(nx, ny, beta, r, p);
   gpu_check(cudaDeviceSynchronize());
+
+  STOP_PROFILING(&compute_profile, "update conjugate");
 }
 
 // Prints the vector to std out

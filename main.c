@@ -23,7 +23,7 @@ int main(int argc, char** argv)
   mesh.local_ny = atoi(argv[2]) + 2*PAD;
   mesh.width = WIDTH;
   mesh.height = HEIGHT;
-  mesh.dt = MAX_DT;
+  mesh.dt = MAX_HOT_DT;
   mesh.rank = MASTER;
   mesh.nranks = 1;
   mesh.niters = atoi(argv[3]);
@@ -42,9 +42,11 @@ int main(int argc, char** argv)
 
   START_PROFILING(&wallclock);
 
+#if 0
   write_all_ranks_to_visit(
       mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
       mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "final_result", 0, 0.0);
+#endif // if 0
 
   int tt = 0;
   double elapsed_sim_time = 0.0;
