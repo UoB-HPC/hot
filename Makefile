@@ -47,5 +47,5 @@ make_build_dir:
 	@mkdir -p $(MULTI_BUILD_DIR)/$(KERNELS)
 
 clean:
-	rm -rf $(MULTI_BUILD_DIR)/* hot.* *.vtk *.bov *.dat *.optrpt *.cub *.ptx
+	rm -rf $(MULTI_BUILD_DIR)/* hot.$(KERNELS) *.vtk *.bov *.dat *.optrpt *.cub *.ptx
 
