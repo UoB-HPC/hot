@@ -1,0 +1,182 @@
+rank 4 neighbours 12 5 -1 3
+rank 8 neighbours 16 9 0 -1
+rank 12 neighbours 20 13 4 11
+rank 14 neighbours 22 15 6 13
+rank 16 neighbours 24 17 8 -1
+rank 20 neighbours 28 21 12 19
+rank 24 neighbours 32 25 16 -1
+rank 26 neighbours 34 27 18 25
+rank 28 neighbours 36 29 20 27
+rank 32 neighbours 40 33 24 -1
+rank 34 neighbours 42 35 26 33
+rank 36 neighbours 44 37 28 35
+rank 40 neighbours 48 41 32 -1
+rank 42 neighbours 50 43 34 41
+rank 44 neighbours 52 45 36 43
+rank 48 neighbours 56 49 40 -1
+rank 52 neighbours 60 53 44 51
+rank 53 neighbours 61 54 45 52
+rank 56 neighbours -1 57 48 -1
+rank 60 neighbours -1 61 52 59
+rank 0 neighbours 8 1 -1 -1
+Problem dimensions 5000x5000 for 50 iterations.
+rank 1 neighbours 9 2 -1 0
+rank 2 neighbours 10 3 -1 1
+rank 3 neighbours 11 4 -1 2
+rank 5 neighbours 13 6 -1 4
+rank 6 neighbours 14 7 -1 5
+rank 7 neighbours 15 -1 -1 6
+rank 9 neighbours 17 10 1 8
+rank 10 neighbours 18 11 2 9
+rank 11 neighbours 19 12 3 10
+rank 13 neighbours 21 14 5 12
+rank 15 neighbours 23 -1 7 14
+rank 17 neighbours 25 18 9 16
+rank 18 neighbours 26 19 10 17
+rank 19 neighbours 27 20 11 18
+rank 21 neighbours 29 22 13 20
+rank 22 neighbours 30 23 14 21
+rank 23 neighbours 31 -1 15 22
+rank 25 neighbours 33 26 17 24
+rank 27 neighbours 35 28 19 26
+rank 29 neighbours 37 30 21 28
+rank 30 neighbours 38 31 22 29
+rank 31 neighbours 39 -1 23 30
+rank 33 neighbours 41 34 25 32
+rank 35 neighbours 43 36 27 34
+rank 37 neighbours 45 38 29 36
+rank 38 neighbours 46 39 30 37
+rank 39 neighbours 47 -1 31 38
+rank 41 neighbours 49 42 33 40
+rank 43 neighbours 51 44 35 42
+rank 45 neighbours 53 46 37 44
+rank 46 neighbours 54 47 38 45
+rank 47 neighbours 55 -1 39 46
+rank 49 neighbours 57 50 41 48
+rank 50 neighbours 58 51 42 49
+rank 51 neighbours 59 52 43 50
+rank 54 neighbours 62 55 46 53
+rank 55 neighbours 63 -1 47 54
+rank 57 neighbours -1 58 49 56
+rank 58 neighbours -1 59 50 57
+rank 59 neighbours -1 60 51 58
+rank 61 neighbours -1 62 53 60
+rank 62 neighbours -1 63 54 61
+rank 63 neighbours -1 -1 55 62
+step 1
+finished on diffusion iteration 100 with error 1.280224e+04
+step 2
+finished on diffusion iteration 100 with error 2.355150e+03
+step 3
+finished on diffusion iteration 100 with error 1.684257e+02
+step 4
+finished on diffusion iteration 100 with error 6.744766e+01
+step 5
+finished on diffusion iteration 100 with error 1.560765e+01
+step 6
+finished on diffusion iteration 100 with error 1.052808e+01
+step 7
+finished on diffusion iteration 100 with error 3.567445e+00
+step 8
+finished on diffusion iteration 100 with error 2.974531e+00
+step 9
+finished on diffusion iteration 100 with error 1.220647e+00
+step 10
+finished on diffusion iteration 100 with error 1.139257e+00
+step 11
+finished on diffusion iteration 100 with error 5.249681e-01
+step 12
+finished on diffusion iteration 100 with error 5.248508e-01
+step 13
+finished on diffusion iteration 100 with error 2.616373e-01
+step 14
+finished on diffusion iteration 100 with error 2.738893e-01
+step 15
+finished on diffusion iteration 100 with error 1.446233e-01
+step 16
+finished on diffusion iteration 100 with error 1.564670e-01
+step 17
+finished on diffusion iteration 100 with error 8.636489e-02
+step 18
+finished on diffusion iteration 100 with error 9.579983e-02
+step 19
+finished on diffusion iteration 100 with error 5.477622e-02
+step 20
+finished on diffusion iteration 100 with error 6.197809e-02
+step 21
+finished on diffusion iteration 100 with error 3.646524e-02
+step 22
+finished on diffusion iteration 100 with error 4.194350e-02
+step 23
+finished on diffusion iteration 100 with error 2.526163e-02
+step 24
+finished on diffusion iteration 100 with error 2.946974e-02
+step 25
+finished on diffusion iteration 100 with error 1.809245e-02
+step 26
+finished on diffusion iteration 100 with error 2.137171e-02
+step 27
+finished on diffusion iteration 100 with error 1.332775e-02
+step 28
+finished on diffusion iteration 100 with error 1.592336e-02
+step 29
+finished on diffusion iteration 100 with error 1.005661e-02
+step 30
+finished on diffusion iteration 100 with error 1.214301e-02
+step 31
+finished on diffusion iteration 100 with error 7.746891e-03
+step 32
+finished on diffusion iteration 100 with error 9.448787e-03
+step 33
+finished on diffusion iteration 100 with error 6.075664e-03
+step 34
+finished on diffusion iteration 100 with error 7.483162e-03
+step 35
+finished on diffusion iteration 100 with error 4.840285e-03
+step 36
+finished on diffusion iteration 100 with error 6.019361e-03
+step 37
+finished on diffusion iteration 100 with error 3.909767e-03
+step 38
+finished on diffusion iteration 100 with error 4.909392e-03
+step 39
+finished on diffusion iteration 100 with error 3.197152e-03
+step 40
+finished on diffusion iteration 100 with error 4.054167e-03
+step 41
+finished on diffusion iteration 100 with error 2.643305e-03
+step 42
+finished on diffusion iteration 100 with error 3.385774e-03
+step 43
+finished on diffusion iteration 100 with error 2.207123e-03
+step 44
+finished on diffusion iteration 100 with error 2.856683e-03
+step 45
+finished on diffusion iteration 100 with error 1.859476e-03
+step 46
+finished on diffusion iteration 100 with error 2.432990e-03
+step 47
+finished on diffusion iteration 100 with error 1.579346e-03
+step 48
+finished on diffusion iteration 100 with error 2.090097e-03
+step 49
+finished on diffusion iteration 100 with error 1.351332e-03
+step 50
+finished on diffusion iteration 100 with error 1.809883e-03
+
+-------------------------------------------------------------
+
+Profiling Results:
+
+Kernel Name                               Calls                 Runtime (s)
+initialise cg                                50                  0.32937822
+communications                            10050                  1.34044378
+calculate alpha                            5000                 12.97781392
+calculate new r2                           5000                 14.43438809
+update conjugate                           5000                  7.35721367
+
+Total elapsed time: 36.439s, entries * are excluded.
+
+-------------------------------------------------------------
+
+wallclock 40.91s, elapsed simulation time 0.0600s
