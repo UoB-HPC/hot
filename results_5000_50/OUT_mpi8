@@ -1,0 +1,502 @@
+rm -rf ../obj/* hot.cuda *.vtk *.bov *.dat *.optrpt *.cub *.ptx
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c main.c -o ../obj/main.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c omp3/hot.c -o ../obj/omp3/hot.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../omp3/data.c -o ../obj/omp3/data.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../omp3/halos.c -o ../obj/omp3/halos.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../omp3/shared.c -o ../obj/omp3/shared.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../comms.c -o ../obj/comms.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../mesh.c -o ../obj/mesh.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../profiler.c -o ../obj/profiler.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../shared.c -o ../obj/shared.o
+cc -lrt -hlist=a -DENABLE_PROFILING -DDEBUG  -DMPI -c ../state.c -o ../obj/state.o
+
+    for(int dd = 0; dd < PAD; ++dd) {
+CC-7242 craycc: WARNING File = ../omp3/halos.c, Line = 116
+  Collapse directive not honored due to imperfect loop nesting.
+
+      for(int jj = PAD; jj < nx-PAD; ++jj) {
+CC-7242 craycc: WARNING File = ../omp3/halos.c, Line = 117
+  Collapse directive not honored due to imperfect loop nesting.
+
+    for(int dd = 0; dd < PAD; ++dd) {
+CC-7242 craycc: WARNING File = ../omp3/halos.c, Line = 125
+  Collapse directive not honored due to imperfect loop nesting.
+
+      for(int jj = PAD; jj < nx-PAD; ++jj) {
+CC-7242 craycc: WARNING File = ../omp3/halos.c, Line = 126
+  Collapse directive not honored due to imperfect loop nesting.
+
+Cray C : Version 8.5.5 (20161018192458_ea2a5395960bcf0b21601dab3dff40dd5608597c)
+Total warnings detected in ../omp3/halos.c: 4
+cc  ../obj/main.o  ../obj/omp3/hot.o  ../obj/omp3/data.o  ../obj/omp3/halos.o  ../obj/omp3/shared.o  ../obj/comms.o  ../obj/mesh.o  ../obj/profiler.o  ../obj/shared.o  ../obj/state.o -lrt -hlist=a -lm -o hot.omp3
+rank 19 neighbours 35 20 3 18
+rank 17 neighbours 33 18 1 16
+rank 20 neighbours 36 21 4 19
+rank 1 neighbours 17 2 -1 0
+rank 8 neighbours 24 9 -1 7
+rank 13 neighbours 29 14 -1 12
+rank 5 neighbours 21 6 -1 4
+rank 25 neighbours 41 26 9 24
+rank 40 neighbours 56 41 24 39
+rank 41 neighbours 57 42 25 40
+rank 15 neighbours 31 -1 -1 14
+rank 24 neighbours 40 25 8 23
+rank 22 neighbours 38 23 6 21
+rank 29 neighbours 45 30 13 28
+rank 28 neighbours 44 29 12 27
+rank 313 neighbours 329 314 297 312
+rank 319 neighbours 335 -1 303 318
+rank 340 neighbours -1 341 324 339
+rank 322 neighbours 338 323 306 321
+rank 326 neighbours 342 327 310 325
+rank 333 neighbours 349 334 317 332
+rank 329 neighbours 345 330 313 328
+rank 308 neighbours 324 309 292 307
+rank 336 neighbours -1 337 320 -1
+rank 334 neighbours 350 335 318 333
+rank 331 neighbours 347 332 315 330
+rank 320 neighbours 336 321 304 -1
+rank 325 neighbours 341 326 309 324
+rank 310 neighbours 326 311 294 309
+rank 337 neighbours -1 338 321 336
+rank 348 neighbours -1 349 332 347
+rank 321 neighbours 337 322 305 320
+rank 330 neighbours 346 331 314 329
+rank 315 neighbours 331 316 299 314
+rank 293 neighbours 309 294 277 292
+rank 296 neighbours 312 297 280 295
+rank 283 neighbours 299 284 267 282
+rank 277 neighbours 293 278 261 276
+rank 278 neighbours 294 279 262 277
+rank 269 neighbours 285 270 253 268
+rank 292 neighbours 308 293 276 291
+rank 265 neighbours 281 266 249 264
+rank 300 neighbours 316 301 284 299
+rank 306 neighbours 322 307 290 305
+rank 301 neighbours 317 302 285 300
+rank 271 neighbours 287 -1 255 270
+rank 288 neighbours 304 289 272 -1
+rank 285 neighbours 301 286 269 284
+rank 276 neighbours 292 277 260 275
+rank 282 neighbours 298 283 266 281
+rank 226 neighbours 242 227 210 225
+rank 224 neighbours 240 225 208 -1
+rank 221 neighbours 237 222 205 220
+rank 246 neighbours 262 247 230 245
+rank 230 neighbours 246 231 214 229
+rank 223 neighbours 239 -1 207 222
+rank 244 neighbours 260 245 228 243
+rank 245 neighbours 261 246 229 244
+rank 247 neighbours 263 248 231 246
+rank 249 neighbours 265 250 233 248
+rank 241 neighbours 257 242 225 240
+rank 233 neighbours 249 234 217 232
+rank 229 neighbours 245 230 213 228
+rank 220 neighbours 236 221 204 219
+rank 225 neighbours 241 226 209 224
+rank 243 neighbours 259 244 227 242
+rank 181 neighbours 197 182 165 180
+rank 193 neighbours 209 194 177 192
+rank 196 neighbours 212 197 180 195
+rank 180 neighbours 196 181 164 179
+rank 192 neighbours 208 193 176 -1
+rank 205 neighbours 221 206 189 204
+rank 206 neighbours 222 207 190 205
+rank 208 neighbours 224 209 192 -1
+rank 200 neighbours 216 201 184 199
+rank 204 neighbours 220 205 188 203
+rank 219 neighbours 235 220 203 218
+rank 202 neighbours 218 203 186 201
+rank 154 neighbours 170 155 138 153
+rank 142 neighbours 158 143 126 141
+rank 146 neighbours 162 147 130 145
+rank 158 neighbours 174 159 142 157
+rank 159 neighbours 175 -1 143 158
+rank 155 neighbours 171 156 139 154
+rank 173 neighbours 189 174 157 172
+rank 147 neighbours 163 148 131 146
+rank 174 neighbours 190 175 158 173
+rank 162 neighbours 178 163 146 161
+rank 144 neighbours 160 145 128 -1
+rank 138 neighbours 154 139 122 137
+rank 152 neighbours 168 153 136 151
+rank 114 neighbours 130 115 98 113
+rank 119 neighbours 135 120 103 118
+rank 103 neighbours 119 104 87 102
+rank 130 neighbours 146 131 114 129
+rank 105 neighbours 121 106 89 104
+rank 101 neighbours 117 102 85 100
+rank 128 neighbours 144 129 112 -1
+rank 125 neighbours 141 126 109 124
+rank 129 neighbours 145 130 113 128
+rank 98 neighbours 114 99 82 97
+rank 112 neighbours 128 113 96 -1
+rank 111 neighbours 127 -1 95 110
+rank 100 neighbours 116 101 84 99
+rank 97 neighbours 113 98 81 96
+rank 118 neighbours 134 119 102 117
+rank 124 neighbours 140 125 108 123
+rank 116 neighbours 132 117 100 115
+rank 131 neighbours 147 132 115 130
+rank 115 neighbours 131 116 99 114
+rank 113 neighbours 129 114 97 112
+rank 108 neighbours 124 109 92 107
+rank 106 neighbours 122 107 90 105
+rank 109 neighbours 125 110 93 108
+rank 72 neighbours 88 73 56 71
+rank 69 neighbours 85 70 53 68
+rank 59 neighbours 75 60 43 58
+rank 61 neighbours 77 62 45 60
+rank 65 neighbours 81 66 49 64
+rank 66 neighbours 82 67 50 65
+rank 71 neighbours 87 72 55 70
+rank 68 neighbours 84 69 52 67
+rank 86 neighbours 102 87 70 85
+rank 79 neighbours 95 -1 63 78
+rank 46 neighbours 62 47 30 45
+rank 63 neighbours 79 -1 47 62
+rank 75 neighbours 91 76 59 74
+rank 76 neighbours 92 77 60 75
+rank 84 neighbours 100 85 68 83
+rank 11 neighbours 27 12 -1 10
+rank 30 neighbours 46 31 14 29
+rank 27 neighbours 43 28 11 26
+rank 34 neighbours 50 35 18 33
+rank 42 neighbours 58 43 26 41
+rank 26 neighbours 42 27 10 25
+rank 32 neighbours 48 33 16 -1
+rank 10 neighbours 26 11 -1 9
+rank 12 neighbours 28 13 -1 11
+rank 9 neighbours 25 10 -1 8
+rank 6 neighbours 22 7 -1 5
+rank 36 neighbours 52 37 20 35
+rank 4 neighbours 20 5 -1 3
+rank 35 neighbours 51 36 19 34
+rank 0 neighbours 16 1 -1 -1
+rank 16 neighbours 32 17 0 -1
+Problem dimensions 5000x5000 for 50 iterations.
+rank 14 neighbours 30 15 -1 13
+rank 2 neighbours 18 3 -1 1
+rank 39 neighbours 55 40 23 38
+rank 7 neighbours 23 8 -1 6
+rank 18 neighbours 34 19 2 17
+rank 21 neighbours 37 22 5 20
+rank 37 neighbours 53 38 21 36
+rank 43 neighbours 59 44 27 42
+rank 38 neighbours 54 39 22 37
+rank 3 neighbours 19 4 -1 2
+rank 23 neighbours 39 24 7 22
+rank 31 neighbours 47 -1 15 30
+rank 33 neighbours 49 34 17 32
+rank 80 neighbours 96 81 64 -1
+rank 87 neighbours 103 88 71 86
+rank 77 neighbours 93 78 61 76
+rank 57 neighbours 73 58 41 56
+rank 45 neighbours 61 46 29 44
+rank 44 neighbours 60 45 28 43
+rank 49 neighbours 65 50 33 48
+rank 64 neighbours 80 65 48 -1
+rank 82 neighbours 98 83 66 81
+rank 70 neighbours 86 71 54 69
+rank 73 neighbours 89 74 57 72
+rank 81 neighbours 97 82 65 80
+rank 52 neighbours 68 53 36 51
+rank 58 neighbours 74 59 42 57
+rank 85 neighbours 101 86 69 84
+rank 78 neighbours 94 79 62 77
+rank 47 neighbours 63 -1 31 46
+rank 48 neighbours 64 49 32 -1
+rank 74 neighbours 90 75 58 73
+rank 51 neighbours 67 52 35 50
+rank 56 neighbours 72 57 40 55
+rank 55 neighbours 71 56 39 54
+rank 62 neighbours 78 63 46 61
+rank 60 neighbours 76 61 44 59
+rank 83 neighbours 99 84 67 82
+rank 54 neighbours 70 55 38 53
+rank 67 neighbours 83 68 51 66
+rank 53 neighbours 69 54 37 52
+rank 50 neighbours 66 51 34 49
+rank 165 neighbours 181 166 149 164
+rank 157 neighbours 173 158 141 156
+rank 168 neighbours 184 169 152 167
+rank 161 neighbours 177 162 145 160
+rank 175 neighbours 191 -1 159 174
+rank 143 neighbours 159 -1 127 142
+rank 169 neighbours 185 170 153 168
+rank 163 neighbours 179 164 147 162
+rank 172 neighbours 188 173 156 171
+rank 156 neighbours 172 157 140 155
+rank 160 neighbours 176 161 144 -1
+rank 149 neighbours 165 150 133 148
+rank 136 neighbours 152 137 120 135
+rank 137 neighbours 153 138 121 136
+rank 164 neighbours 180 165 148 163
+rank 140 neighbours 156 141 124 139
+rank 135 neighbours 151 136 119 134
+rank 148 neighbours 164 149 132 147
+rank 141 neighbours 157 142 125 140
+rank 166 neighbours 182 167 150 165
+rank 132 neighbours 148 133 116 131
+rank 170 neighbours 186 171 154 169
+rank 171 neighbours 187 172 155 170
+rank 167 neighbours 183 168 151 166
+rank 133 neighbours 149 134 117 132
+rank 151 neighbours 167 152 135 150
+rank 134 neighbours 150 135 118 133
+rank 153 neighbours 169 154 137 152
+rank 139 neighbours 155 140 123 138
+rank 150 neighbours 166 151 134 149
+rank 145 neighbours 161 146 129 144
+rank 210 neighbours 226 211 194 209
+rank 203 neighbours 219 204 187 202
+rank 176 neighbours 192 177 160 -1
+rank 199 neighbours 215 200 183 198
+rank 184 neighbours 200 185 168 183
+rank 178 neighbours 194 179 162 177
+rank 212 neighbours 228 213 196 211
+rank 218 neighbours 234 219 202 217
+rank 177 neighbours 193 178 161 176
+rank 209 neighbours 225 210 193 208
+rank 207 neighbours 223 -1 191 206
+rank 213 neighbours 229 214 197 212
+rank 197 neighbours 213 198 181 196
+rank 195 neighbours 211 196 179 194
+rank 198 neighbours 214 199 182 197
+rank 187 neighbours 203 188 171 186
+rank 194 neighbours 210 195 178 193
+rank 191 neighbours 207 -1 175 190
+rank 190 neighbours 206 191 174 189
+rank 216 neighbours 232 217 200 215
+rank 214 neighbours 230 215 198 213
+rank 185 neighbours 201 186 169 184
+rank 215 neighbours 231 216 199 214
+rank 217 neighbours 233 218 201 216
+rank 211 neighbours 227 212 195 210
+rank 182 neighbours 198 183 166 181
+rank 201 neighbours 217 202 185 200
+rank 186 neighbours 202 187 170 185
+rank 179 neighbours 195 180 163 178
+rank 183 neighbours 199 184 167 182
+rank 188 neighbours 204 189 172 187
+rank 189 neighbours 205 190 173 188
+rank 232 neighbours 248 233 216 231
+rank 237 neighbours 253 238 221 236
+rank 234 neighbours 250 235 218 233
+rank 248 neighbours 264 249 232 247
+rank 254 neighbours 270 255 238 253
+rank 228 neighbours 244 229 212 227
+rank 258 neighbours 274 259 242 257
+rank 242 neighbours 258 243 226 241
+rank 262 neighbours 278 263 246 261
+rank 236 neighbours 252 237 220 235
+rank 222 neighbours 238 223 206 221
+rank 231 neighbours 247 232 215 230
+rank 256 neighbours 272 257 240 -1
+rank 250 neighbours 266 251 234 249
+rank 252 neighbours 268 253 236 251
+rank 239 neighbours 255 -1 223 238
+rank 238 neighbours 254 239 222 237
+rank 227 neighbours 243 228 211 226
+rank 257 neighbours 273 258 241 256
+rank 255 neighbours 271 -1 239 254
+rank 263 neighbours 279 264 247 262
+rank 259 neighbours 275 260 243 258
+rank 260 neighbours 276 261 244 259
+rank 253 neighbours 269 254 237 252
+rank 261 neighbours 277 262 245 260
+rank 240 neighbours 256 241 224 -1
+rank 251 neighbours 267 252 235 250
+rank 235 neighbours 251 236 219 234
+rank 297 neighbours 313 298 281 296
+rank 281 neighbours 297 282 265 280
+rank 264 neighbours 280 265 248 263
+rank 307 neighbours 323 308 291 306
+rank 267 neighbours 283 268 251 266
+rank 273 neighbours 289 274 257 272
+rank 268 neighbours 284 269 252 267
+rank 290 neighbours 306 291 274 289
+rank 266 neighbours 282 267 250 265
+rank 284 neighbours 300 285 268 283
+rank 287 neighbours 303 -1 271 286
+rank 294 neighbours 310 295 278 293
+rank 305 neighbours 321 306 289 304
+rank 298 neighbours 314 299 282 297
+rank 279 neighbours 295 280 263 278
+rank 304 neighbours 320 305 288 -1
+rank 295 neighbours 311 296 279 294
+rank 303 neighbours 319 -1 287 302
+rank 270 neighbours 286 271 254 269
+rank 275 neighbours 291 276 259 274
+rank 289 neighbours 305 290 273 288
+rank 299 neighbours 315 300 283 298
+rank 291 neighbours 307 292 275 290
+rank 280 neighbours 296 281 264 279
+rank 302 neighbours 318 303 286 301
+rank 286 neighbours 302 287 270 285
+rank 274 neighbours 290 275 258 273
+rank 272 neighbours 288 273 256 -1
+rank 345 neighbours -1 346 329 344
+rank 323 neighbours 339 324 307 322
+rank 318 neighbours 334 319 302 317
+rank 317 neighbours 333 318 301 316
+rank 311 neighbours 327 312 295 310
+rank 314 neighbours 330 315 298 313
+rank 309 neighbours 325 310 293 308
+rank 343 neighbours -1 344 327 342
+rank 341 neighbours -1 342 325 340
+rank 338 neighbours -1 339 322 337
+rank 342 neighbours -1 343 326 341
+rank 327 neighbours 343 328 311 326
+rank 328 neighbours 344 329 312 327
+rank 324 neighbours 340 325 308 323
+rank 332 neighbours 348 333 316 331
+rank 316 neighbours 332 317 300 315
+rank 350 neighbours -1 351 334 349
+rank 347 neighbours -1 348 331 346
+rank 312 neighbours 328 313 296 311
+rank 339 neighbours -1 340 323 338
+rank 335 neighbours 351 -1 319 334
+rank 344 neighbours -1 345 328 343
+rank 346 neighbours -1 347 330 345
+rank 351 neighbours -1 -1 335 350
+rank 349 neighbours -1 350 333 348
+step 1
+rank 93 neighbours 109 94 77 92
+rank 99 neighbours 115 100 83 98
+rank 122 neighbours 138 123 106 121
+rank 89 neighbours 105 90 73 88
+rank 94 neighbours 110 95 78 93
+rank 126 neighbours 142 127 110 125
+rank 88 neighbours 104 89 72 87
+rank 110 neighbours 126 111 94 109
+rank 121 neighbours 137 122 105 120
+rank 117 neighbours 133 118 101 116
+rank 96 neighbours 112 97 80 -1
+rank 127 neighbours 143 -1 111 126
+rank 102 neighbours 118 103 86 101
+rank 91 neighbours 107 92 75 90
+rank 120 neighbours 136 121 104 119
+rank 92 neighbours 108 93 76 91
+rank 95 neighbours 111 -1 79 94
+rank 123 neighbours 139 124 107 122
+rank 107 neighbours 123 108 91 106
+rank 104 neighbours 120 105 88 103
+rank 90 neighbours 106 91 74 89
+finished on diffusion iteration 100 with error 1.280224e+04
+step 2
+finished on diffusion iteration 100 with error 2.355150e+03
+step 3
+finished on diffusion iteration 100 with error 1.684257e+02
+step 4
+finished on diffusion iteration 100 with error 6.744766e+01
+step 5
+finished on diffusion iteration 100 with error 1.560765e+01
+step 6
+finished on diffusion iteration 100 with error 1.052808e+01
+step 7
+finished on diffusion iteration 100 with error 3.567445e+00
+step 8
+finished on diffusion iteration 100 with error 2.974531e+00
+step 9
+finished on diffusion iteration 100 with error 1.220647e+00
+step 10
+finished on diffusion iteration 100 with error 1.139257e+00
+step 11
+finished on diffusion iteration 100 with error 5.249681e-01
+step 12
+finished on diffusion iteration 100 with error 5.248508e-01
+step 13
+finished on diffusion iteration 100 with error 2.616373e-01
+step 14
+finished on diffusion iteration 100 with error 2.738893e-01
+step 15
+finished on diffusion iteration 100 with error 1.446233e-01
+step 16
+finished on diffusion iteration 100 with error 1.564670e-01
+step 17
+finished on diffusion iteration 100 with error 8.636489e-02
+step 18
+finished on diffusion iteration 100 with error 9.579983e-02
+step 19
+finished on diffusion iteration 100 with error 5.477622e-02
+step 20
+finished on diffusion iteration 100 with error 6.197809e-02
+step 21
+finished on diffusion iteration 100 with error 3.646524e-02
+step 22
+finished on diffusion iteration 100 with error 4.194350e-02
+step 23
+finished on diffusion iteration 100 with error 2.526163e-02
+step 24
+finished on diffusion iteration 100 with error 2.946974e-02
+step 25
+finished on diffusion iteration 100 with error 1.809245e-02
+step 26
+finished on diffusion iteration 100 with error 2.137171e-02
+step 27
+finished on diffusion iteration 100 with error 1.332775e-02
+step 28
+finished on diffusion iteration 100 with error 1.592336e-02
+step 29
+finished on diffusion iteration 100 with error 1.005661e-02
+step 30
+finished on diffusion iteration 100 with error 1.214301e-02
+step 31
+finished on diffusion iteration 100 with error 7.746891e-03
+step 32
+finished on diffusion iteration 100 with error 9.448787e-03
+step 33
+finished on diffusion iteration 100 with error 6.075664e-03
+step 34
+finished on diffusion iteration 100 with error 7.483162e-03
+step 35
+finished on diffusion iteration 100 with error 4.840285e-03
+step 36
+finished on diffusion iteration 100 with error 6.019361e-03
+step 37
+finished on diffusion iteration 100 with error 3.909767e-03
+step 38
+finished on diffusion iteration 100 with error 4.909392e-03
+step 39
+finished on diffusion iteration 100 with error 3.197152e-03
+step 40
+finished on diffusion iteration 100 with error 4.054167e-03
+step 41
+finished on diffusion iteration 100 with error 2.643305e-03
+step 42
+finished on diffusion iteration 100 with error 3.385774e-03
+step 43
+finished on diffusion iteration 100 with error 2.207123e-03
+step 44
+finished on diffusion iteration 100 with error 2.856683e-03
+step 45
+finished on diffusion iteration 100 with error 1.859476e-03
+step 46
+finished on diffusion iteration 100 with error 2.432990e-03
+step 47
+finished on diffusion iteration 100 with error 1.579346e-03
+step 48
+finished on diffusion iteration 100 with error 2.090097e-03
+step 49
+finished on diffusion iteration 100 with error 1.351332e-03
+step 50
+finished on diffusion iteration 100 with error 1.809883e-03
+
+-------------------------------------------------------------
+
+Profiling Results:
+
+Kernel Name                               Calls                 Runtime (s)
+initialise cg                                50                  0.10685692
+communications                            10050                  0.66929295
+calculate alpha                            5000                  3.39814206
+calculate new r2                           5000                  2.34761049
+update conjugate                           5000                  0.51898414
+
+Total elapsed time: 7.041s, entries * are excluded.
+
+-------------------------------------------------------------
+
+wallclock 7.32s, elapsed simulation time 0.0600s
+Application 1826177 resources: utime ~2609s, stime ~171s, Rss ~35368, inblocks ~154513, outblocks ~152120
