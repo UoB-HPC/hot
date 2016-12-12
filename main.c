@@ -77,7 +77,7 @@ int main(int argc, char** argv)
   if(mesh.rank == MASTER) {
     struct ProfileEntry pe = profiler_get_profile_entry(&wallclock, "wallclock");
     PRINT_PROFILING_RESULTS(&compute_profile);
-    printf("wallclock %.2fs, elapsed simulation time %.4fs\n", pe.time, elapsed_sim_time);
+    printf("wallclock %.4f, elapsed simulation time %.4fs\n", pe.time, elapsed_sim_time);
   }
 
 #if 0
