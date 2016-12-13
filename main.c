@@ -31,10 +31,10 @@ int main(int argc, char** argv)
   initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
   initialise_devices(mesh.rank);
   initialise_comms(&mesh);
-  initialise_mesh(&mesh);
+  initialise_mesh_2d(&mesh);
 
   State state = {0};
-  initialise_state(
+  initialise_state_2d(
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
       mesh.x_off, mesh.y_off, &state);
 
