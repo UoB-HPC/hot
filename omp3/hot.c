@@ -12,7 +12,7 @@
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
-void solve_diffusion(
+void solve_diffusion_2d(
     const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
     double* r, double* p, double* rho, double* s_x, double* s_y, 
     double* Ap, int* end_niters, double* end_error, double* reduce_array,

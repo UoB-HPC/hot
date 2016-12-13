@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     int end_niters = 0;
     double end_error = 0.0;
-    solve_diffusion(
+    solve_diffusion_2d(
         mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, state.x, 
         state.r, state.p, state.rho, state.s_x, state.s_y, 
         state.Ap, &end_niters, &end_error, state.reduce_array, mesh.edgedx, mesh.edgedy);
