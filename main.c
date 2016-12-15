@@ -31,10 +31,10 @@ int main(int argc, char** argv)
   initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
   initialise_devices(mesh.rank);
   initialise_comms(&mesh);
-  initialise_mesh(&mesh);
+  initialise_mesh_2d(&mesh);
 
   State state = {0};
-  initialise_state(
+  initialise_state_2d(
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
       mesh.x_off, mesh.y_off, &state);
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     int end_niters = 0;
     double end_error = 0.0;
-    solve_diffusion(
+    solve_diffusion_2d(
         mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, state.x, 
         state.r, state.p, state.rho, state.s_x, state.s_y, 
         state.Ap, &end_niters, &end_error, state.reduce_array, mesh.edgedx, mesh.edgedy);
