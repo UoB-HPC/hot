@@ -1,0 +1,120 @@
+rank 0 selects device 0
+rank 0 neighbours -1 -1 -1 -1
+Problem dimensions 1250x1250 for 50 iterations.
+step 1
+finished on diffusion iteration 100 with error 2.710486e-02
+step 2
+finished on diffusion iteration 100 with error 1.901369e-03
+step 3
+finished on diffusion iteration 100 with error 1.854539e-04
+step 4
+finished on diffusion iteration 100 with error 1.897428e-05
+step 5
+finished on diffusion iteration 100 with error 3.932427e-06
+step 6
+finished on diffusion iteration 100 with error 1.214267e-06
+step 7
+finished on diffusion iteration 100 with error 3.981061e-07
+step 8
+finished on diffusion iteration 100 with error 8.655525e-08
+step 9
+finished on diffusion iteration 100 with error 2.932782e-08
+step 10
+finished on diffusion iteration 100 with error 8.689987e-09
+step 11
+finished on diffusion iteration 100 with error 3.263910e-09
+step 12
+finished on diffusion iteration 100 with error 2.212667e-09
+step 13
+finished on diffusion iteration 100 with error 3.355074e-09
+step 14
+finished on diffusion iteration 100 with error 2.341694e-09
+step 15
+finished on diffusion iteration 100 with error 1.521134e-09
+step 16
+finished on diffusion iteration 100 with error 6.365777e-10
+step 17
+finished on diffusion iteration 100 with error 4.350681e-10
+step 18
+finished on diffusion iteration 100 with error 1.885319e-10
+step 19
+finished on diffusion iteration 100 with error 1.336388e-10
+step 20
+finished on diffusion iteration 100 with error 5.269958e-11
+step 21
+finished on diffusion iteration 100 with error 4.182404e-11
+step 22
+finished on diffusion iteration 100 with error 2.348134e-11
+step 23
+finished on diffusion iteration 100 with error 1.336537e-11
+step 24
+finished on diffusion iteration 100 with error 1.608083e-11
+step 25
+finished on diffusion iteration 100 with error 6.109478e-12
+step 26
+finished on diffusion iteration 100 with error 7.917815e-12
+step 27
+finished on diffusion iteration 100 with error 2.908774e-12
+step 28
+finished on diffusion iteration 100 with error 3.774086e-12
+step 29
+finished on diffusion iteration 100 with error 1.390053e-12
+step 30
+finished on diffusion iteration 100 with error 1.961294e-12
+step 31
+finished on diffusion iteration 100 with error 6.763807e-13
+step 32
+finished on diffusion iteration 100 with error 1.075922e-12
+step 33
+finished on diffusion iteration 100 with error 3.534263e-13
+step 34
+finished on diffusion iteration 100 with error 6.356241e-13
+step 35
+finished on diffusion iteration 100 with error 1.640777e-13
+step 36
+finished on diffusion iteration 100 with error 3.897619e-13
+step 37
+finished on diffusion iteration 100 with error 8.940565e-14
+step 38
+finished on diffusion iteration 100 with error 2.413705e-13
+step 39
+finished on diffusion iteration 100 with error 4.782921e-14
+step 40
+finished on diffusion iteration 100 with error 1.538655e-13
+step 41
+finished on diffusion iteration 100 with error 2.547557e-14
+step 42
+finished on diffusion iteration 100 with error 9.689544e-14
+step 43
+finished on diffusion iteration 100 with error 1.524538e-14
+step 44
+finished on diffusion iteration 100 with error 6.637933e-14
+step 45
+finished on diffusion iteration 100 with error 8.632576e-15
+step 46
+finished on diffusion iteration 100 with error 4.718639e-14
+step 47
+finished on diffusion iteration 100 with error 4.752962e-15
+step 48
+finished on diffusion iteration 100 with error 2.528955e-14
+step 49
+finished on diffusion iteration 100 with error 4.990124e-15
+step 50
+finished on diffusion iteration 100 with error 1.504509e-14
+
+-------------------------------------------------------------
+
+Profiling Results:
+
+Kernel Name                               Calls                 Runtime (s)
+communications                            10050                  0.00847968
+calculate alpha                            5000                  2.37776943
+calculate new r2                           5000                  2.36353781
+update conjugate                           5000                  1.09915811
+
+Total elapsed time: 5.849s, entries * are excluded.
+
+-------------------------------------------------------------
+
+wallclock 6.2330, elapsed simulation time 0.0600s
+Application 1828067 resources: utime ~6s, stime ~1s, Rss ~95444, inblocks ~606, outblocks ~276

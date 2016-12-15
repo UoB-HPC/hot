@@ -40,11 +40,13 @@ void solve_diffusion(
     const double beta = global_new_r2/global_old_r2;
     handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
 
+#if 0
     // Check if the solution has converged
     if(fabs(global_new_r2) < 1.0e-10) {
       global_old_r2 = global_new_r2;
       break;
     }
+#endif // if 0
 
     update_conjugate(nx, ny, beta, r, p);
     handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
