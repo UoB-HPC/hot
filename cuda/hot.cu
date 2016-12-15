@@ -11,7 +11,7 @@
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
-void solve_diffusion(
+void solve_diffusion_2d(
     const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
     double* r, double* p, double* rho, double* s_x, double* s_y, 
     double* Ap, int* end_niters, double* end_error, double* reduce_array,
@@ -24,8 +24,8 @@ void solve_diffusion(
   double global_old_r2 = reduce_all_sum(
       local_old_r2);
 
-  handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
-  handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
+  handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
+  handle_boundary_2d(nx, ny, mesh, x, NO_INVERT, PACK);
 
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
@@ -38,7 +38,7 @@ void solve_diffusion(
     const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap, reduce_array);
     const double global_new_r2 = reduce_all_sum(local_new_r2);
     const double beta = global_new_r2/global_old_r2;
-    handle_boundary(nx, ny, mesh, x, NO_INVERT, PACK);
+    handle_boundary_2d(nx, ny, mesh, x, NO_INVERT, PACK);
 
 #if 0
     // Check if the solution has converged
@@ -49,7 +49,7 @@ void solve_diffusion(
 #endif // if 0
 
     update_conjugate(nx, ny, beta, r, p);
-    handle_boundary(nx, ny, mesh, p, NO_INVERT, PACK);
+    handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
 
     // Store the old squared residual
     global_old_r2 = global_new_r2;
