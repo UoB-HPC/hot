@@ -1,0 +1,250 @@
+using tiles decomposition
+rank 0 dims 512 512 neighbours 4 1 -1 -1
+Problem dimensions 2048x2048 for 100 iterations.
+using tiles decomposition
+rank 1 dims 512 512 neighbours 5 2 -1 0
+using tiles decomposition
+rank 2 dims 512 512 neighbours 6 3 -1 1
+using tiles decomposition
+rank 3 dims 512 512 neighbours 7 -1 -1 2
+using tiles decomposition
+rank 4 dims 512 512 neighbours 8 5 0 -1
+using tiles decomposition
+rank 5 dims 512 512 neighbours 9 6 1 4
+using tiles decomposition
+rank 6 dims 512 512 neighbours 10 7 2 5
+using tiles decomposition
+rank 7 dims 512 512 neighbours 11 -1 3 6
+using tiles decomposition
+rank 8 dims 512 512 neighbours 12 9 4 -1
+using tiles decomposition
+rank 9 dims 512 512 neighbours 13 10 5 8
+using tiles decomposition
+rank 10 dims 512 512 neighbours 14 11 6 9
+using tiles decomposition
+rank 11 dims 512 512 neighbours 15 -1 7 10
+using tiles decomposition
+rank 12 dims 512 512 neighbours -1 13 8 -1
+using tiles decomposition
+rank 13 dims 512 512 neighbours -1 14 9 12
+using tiles decomposition
+rank 14 dims 512 512 neighbours -1 15 10 13
+using tiles decomposition
+rank 15 dims 512 512 neighbours -1 -1 11 14
+step 1
+finished on diffusion iteration 100 with error 1.137835e+01
+step 2
+finished on diffusion iteration 100 with error 9.845188e-01
+step 3
+finished on diffusion iteration 100 with error 6.500096e-02
+step 4
+finished on diffusion iteration 100 with error 2.118482e-02
+step 5
+finished on diffusion iteration 100 with error 2.324968e-03
+step 6
+finished on diffusion iteration 100 with error 8.642924e-04
+step 7
+finished on diffusion iteration 100 with error 1.738587e-04
+step 8
+finished on diffusion iteration 100 with error 1.325567e-04
+step 9
+finished on diffusion iteration 100 with error 7.800332e-05
+step 10
+finished on diffusion iteration 100 with error 1.445424e-04
+step 11
+finished on diffusion iteration 100 with error 1.066648e-04
+step 12
+finished on diffusion iteration 100 with error 1.343013e-04
+step 13
+finished on diffusion iteration 100 with error 5.923312e-05
+step 14
+finished on diffusion iteration 100 with error 6.021379e-05
+step 15
+finished on diffusion iteration 100 with error 2.764914e-05
+step 16
+finished on diffusion iteration 100 with error 2.853681e-05
+step 17
+finished on diffusion iteration 100 with error 1.391050e-05
+step 18
+finished on diffusion iteration 100 with error 1.436943e-05
+step 19
+finished on diffusion iteration 100 with error 7.478069e-06
+step 20
+finished on diffusion iteration 100 with error 7.583570e-06
+step 21
+finished on diffusion iteration 100 with error 4.256412e-06
+step 22
+finished on diffusion iteration 100 with error 4.133799e-06
+step 23
+finished on diffusion iteration 100 with error 2.547384e-06
+step 24
+finished on diffusion iteration 100 with error 2.296450e-06
+step 25
+finished on diffusion iteration 100 with error 1.601743e-06
+step 26
+finished on diffusion iteration 100 with error 1.271652e-06
+step 27
+finished on diffusion iteration 100 with error 1.047043e-06
+step 28
+finished on diffusion iteration 100 with error 6.482920e-07
+step 29
+finished on diffusion iteration 100 with error 6.816026e-07
+step 30
+finished on diffusion iteration 100 with error 2.655263e-07
+step 31
+finished on diffusion iteration 100 with error 6.173401e-07
+step 32
+finished on diffusion iteration 100 with error 1.174245e-07
+step 33
+finished on diffusion iteration 100 with error 4.808654e-07
+step 34
+finished on diffusion iteration 100 with error 1.018237e-07
+step 35
+finished on diffusion iteration 100 with error 3.487101e-07
+step 36
+finished on diffusion iteration 100 with error 1.302791e-07
+step 37
+finished on diffusion iteration 100 with error 2.590513e-07
+step 38
+finished on diffusion iteration 100 with error 7.488291e-08
+step 39
+finished on diffusion iteration 100 with error 2.053602e-07
+step 40
+finished on diffusion iteration 100 with error 3.169131e-08
+step 41
+finished on diffusion iteration 100 with error 1.620256e-07
+step 42
+finished on diffusion iteration 100 with error 6.476532e-08
+step 43
+finished on diffusion iteration 100 with error 1.476759e-07
+step 44
+finished on diffusion iteration 100 with error 4.388522e-08
+step 45
+finished on diffusion iteration 100 with error 1.104396e-07
+step 46
+finished on diffusion iteration 100 with error 2.692353e-08
+step 47
+finished on diffusion iteration 100 with error 9.306160e-08
+step 48
+finished on diffusion iteration 100 with error 1.423563e-08
+step 49
+finished on diffusion iteration 100 with error 6.981400e-08
+step 50
+finished on diffusion iteration 100 with error 2.529379e-08
+step 51
+finished on diffusion iteration 100 with error 5.706296e-08
+step 52
+finished on diffusion iteration 100 with error 1.690633e-08
+step 53
+finished on diffusion iteration 100 with error 4.402863e-08
+step 54
+finished on diffusion iteration 100 with error 1.114136e-08
+step 55
+finished on diffusion iteration 100 with error 3.684118e-08
+step 56
+finished on diffusion iteration 100 with error 8.343528e-09
+step 57
+finished on diffusion iteration 100 with error 2.690329e-08
+step 58
+finished on diffusion iteration 100 with error 9.413891e-09
+step 59
+finished on diffusion iteration 100 with error 2.087645e-08
+step 60
+finished on diffusion iteration 100 with error 6.862424e-09
+step 61
+finished on diffusion iteration 100 with error 1.880544e-08
+step 62
+finished on diffusion iteration 100 with error 4.110690e-09
+step 63
+finished on diffusion iteration 100 with error 1.720760e-08
+step 64
+finished on diffusion iteration 100 with error 2.509865e-09
+step 65
+finished on diffusion iteration 100 with error 9.960920e-09
+step 66
+finished on diffusion iteration 100 with error 5.415806e-09
+step 67
+finished on diffusion iteration 100 with error 8.868554e-09
+step 68
+finished on diffusion iteration 100 with error 4.143257e-09
+step 69
+finished on diffusion iteration 100 with error 7.184569e-09
+step 70
+finished on diffusion iteration 100 with error 3.136294e-09
+step 71
+finished on diffusion iteration 100 with error 6.288946e-09
+step 72
+finished on diffusion iteration 100 with error 2.281418e-09
+step 73
+finished on diffusion iteration 100 with error 5.814720e-09
+step 74
+finished on diffusion iteration 100 with error 1.488167e-09
+step 75
+finished on diffusion iteration 100 with error 5.513377e-09
+step 76
+finished on diffusion iteration 100 with error 8.213418e-10
+step 77
+finished on diffusion iteration 100 with error 5.324875e-09
+step 78
+finished on diffusion iteration 100 with error 3.728560e-10
+step 79
+finished on diffusion iteration 100 with error 4.741955e-09
+step 80
+finished on diffusion iteration 100 with error 1.334500e-09
+step 81
+finished on diffusion iteration 100 with error 5.117065e-09
+step 82
+finished on diffusion iteration 100 with error 1.115638e-09
+step 83
+finished on diffusion iteration 100 with error 3.913847e-09
+step 84
+finished on diffusion iteration 100 with error 7.705799e-10
+step 85
+finished on diffusion iteration 100 with error 3.369003e-09
+step 86
+finished on diffusion iteration 100 with error 5.529978e-10
+step 87
+finished on diffusion iteration 100 with error 3.060576e-09
+step 88
+finished on diffusion iteration 100 with error 4.531426e-10
+step 89
+finished on diffusion iteration 100 with error 2.304095e-09
+step 90
+finished on diffusion iteration 100 with error 6.144404e-10
+step 91
+finished on diffusion iteration 100 with error 1.946453e-09
+step 92
+finished on diffusion iteration 100 with error 4.681068e-10
+step 93
+finished on diffusion iteration 100 with error 1.685356e-09
+step 94
+finished on diffusion iteration 100 with error 3.855251e-10
+step 95
+finished on diffusion iteration 100 with error 1.489989e-09
+step 96
+finished on diffusion iteration 100 with error 2.670863e-10
+step 97
+finished on diffusion iteration 100 with error 1.471675e-09
+step 98
+finished on diffusion iteration 100 with error 4.807992e-10
+step 99
+finished on diffusion iteration 100 with error 1.406492e-09
+step 100
+finished on diffusion iteration 100 with error 3.265335e-10
+
+-------------------------------------------------------------
+
+Profiling Results:
+
+Kernel Name                               Calls                 Runtime (s)
+initialise cg                               100                  0.62699224
+communications                            20100                  1.50804627
+calculate alpha                           10000                 25.41037962
+calculate new r2                          10000                 30.98401735
+update conjugate                          10000                 14.47189339
+
+Total elapsed time: 73.001s, entries * are excluded.
+
+-------------------------------------------------------------
+
+wallclock 74.7965, elapsed simulation time 0.1200s
