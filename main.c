@@ -5,7 +5,7 @@
 #include "../profiler.h"
 #include "../comms.h"
 #include "../shared.h"
-#include "../state.h"
+#include "../shared_data.h"
 #include "../mesh.h"
 
 int main(int argc, char** argv) 
@@ -33,10 +33,10 @@ int main(int argc, char** argv)
   initialise_comms(&mesh);
   initialise_mesh_2d(&mesh);
 
-  State state = {0};
-  initialise_state_2d(
+  SharedData shared_data = {0};
+  initialise_shared_data_2d(
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
-      mesh.x_off, mesh.y_off, &state);
+      mesh.x_off, mesh.y_off, &shared_data);
 
   struct Profile wallclock = {0};
 
@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 #if 0
   write_all_ranks_to_visit(
       mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.x, "final_result", 0, 0.0);
+      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, shared_data.x, "final_result", 0, 0.0);
 #endif // if 0
 
   int tt = 0;
@@ -57,9 +57,9 @@ int main(int argc, char** argv)
     int end_niters = 0;
     double end_error = 0.0;
     solve_diffusion_2d(
-        mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, state.x, 
-        state.r, state.p, state.rho, state.s_x, state.s_y, 
-        state.Ap, &end_niters, &end_error, state.reduce_array, mesh.edgedx, mesh.edgedy);
+        mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, shared_data.x, 
+        shared_data.r, shared_data.p, shared_data.rho, shared_data.s_x, shared_data.s_y, 
+        shared_data.Ap, &end_niters, &end_error, shared_data.reduce_array, mesh.edgedx, mesh.edgedy);
 
     if(mesh.rank == MASTER)
       printf("finished on diffusion iteration %d with error %e\n", end_niters, end_error);
@@ -83,10 +83,10 @@ int main(int argc, char** argv)
 #if 0
   write_all_ranks_to_visit(
       mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, state.p, "final_result", 0, elapsed_sim_time);
+      mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, shared_data.p, "final_result", 0, elapsed_sim_time);
 #endif // if 0
 
-  finalise_state(&state);
+  finalise_shared_data(&shared_data);
   finalise_mesh(&mesh);
   finalise_comms();
 }
