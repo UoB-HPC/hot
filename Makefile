@@ -2,7 +2,9 @@
 KERNELS 	  	= omp3
 COMPILER    	= INTEL
 MPI						= yes
-CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -std=gnu99 -DINTEL -Wall -qopt-report=5 #-xhost
+DECOMP				= TILES
+CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -std=gnu99 -DINTEL \
+								-Wall -qopt-report=5 #-xhost
 CFLAGS_GCC		= -O3 -g -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
 CFLAGS_CRAY		= -lrt -hlist=a
 OPTIONS		  	= -DENABLE_PROFILING -DDEBUG 
@@ -11,9 +13,19 @@ ifeq ($(MPI), yes)
   OPTIONS += -DMPI
 endif
 
+ifeq ($(DECOMP), TILES)
+OPTIONS += -DTILES
+endif
+ifeq ($(DECOMP), ROWS)
+OPTIONS += -DROWS
+endif
+ifeq ($(DECOMP), COLS)
+OPTIONS += -DCOLS
+endif
+
 # Default compiler
-MULTI_COMPILER_CC   = mpicc
-MULTI_COMPILER_CPP  = mpic++
+MULTI_COMPILER_CC   = cc
+MULTI_COMPILER_CPP  = CC
 MULTI_LINKER    		= $(MULTI_COMPILER_CC)
 MULTI_FLAGS     		= $(CFLAGS_$(COMPILER))
 MULTI_LDFLAGS   		= $(MULTI_FLAGS) -lm
