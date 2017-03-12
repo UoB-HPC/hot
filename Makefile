@@ -1,13 +1,19 @@
 # User defined parameters
-KERNELS 	  	= omp3
-COMPILER    	= INTEL
+KERNELS 	  	= cuda
+COMPILER    	= GCC
 MPI						= yes
 DECOMP				= TILES
-CFLAGS_INTEL	= -O3 -g -qopenmp -no-prec-div -std=gnu99 -DINTEL \
+CFLAGS_INTEL	= -qopenmp -no-prec-div -std=gnu99 -DINTEL \
 								-Wall -qopt-report=5 -xhost
-CFLAGS_GCC		= -O3 -g -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
+CFLAGS_GCC		= -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
 CFLAGS_CRAY		= -lrt -hlist=a
-OPTIONS		  	= -DENABLE_PROFILING -DDEBUG 
+OPTIONS		  	= -DENABLE_PROFILING 
+
+ifeq ($(DEBUG), yes)
+  OPTIONS += -O0 -g -DDEBUG 
+else
+  OPTIONS += -O3
+endif
 
 ifeq ($(MPI), yes)
   OPTIONS += -DMPI

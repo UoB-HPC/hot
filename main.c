@@ -12,22 +12,23 @@
 
 int main(int argc, char** argv) 
 {
-  if(argc < 4) {
-    TERMINATE("Usage: ./hot.exe <nx> <ny> <niters>\n");
+  if(argc < 2) {
+    TERMINATE("Usage: ./hot.exe <parameter_filename>\n");
   }
 
   Mesh mesh = {0};
-  mesh.global_nx = atoi(argv[1]);
-  mesh.global_ny = atoi(argv[2]);
-  mesh.local_nx = atoi(argv[1]) + 2*PAD;
-  mesh.local_ny = atoi(argv[2]) + 2*PAD;
+  const char* params_filename = argv[1];
+  mesh.global_nx = get_int_parameter("nx", params_filename);
+  mesh.global_ny = get_int_parameter("ny", params_filename);
+  mesh.local_nx = mesh.global_nx + 2*PAD;
+  mesh.local_ny = mesh.global_ny + 2*PAD;
   mesh.width = get_double_parameter("width", ARCH_ROOT_PARAMS);
   mesh.height = get_double_parameter("height", ARCH_ROOT_PARAMS);
   mesh.sim_end = get_double_parameter("sim_end", ARCH_ROOT_PARAMS);
   mesh.dt = get_double_parameter("max_dt", ARCH_ROOT_PARAMS);
   mesh.rank = MASTER;
   mesh.nranks = 1;
-  mesh.niters = atoi(argv[3]);
+  mesh.niters = get_int_parameter("iterations", params_filename);
 
   initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
   initialise_devices(mesh.rank);
@@ -36,8 +37,9 @@ int main(int argc, char** argv)
 
   SharedData shared_data = {0};
   initialise_shared_data_2d(
-      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, 
-      mesh.x_off, mesh.y_off, &shared_data);
+      mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
+      mesh.y_off, mesh.width, mesh.height, params_filename, mesh.edgex, 
+      mesh.edgey, &shared_data);
 
   int tt = 0;
   double elapsed_sim_time = 0.0;

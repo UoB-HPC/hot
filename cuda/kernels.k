@@ -7,7 +7,9 @@ __global__ void calc_s_x(
     const int nx, const int ny, const double dt, double* s_x, 
     const double* rho, const double* edgedx) 
 {
-  set_cuda_indices(1);
+  const int gid = threadIdx.x+blockIdx.x*blockDim.x;
+  const int jj = (gid % (nx+1));
+  const int ii = (gid / (nx+1));
   if(ii < PAD || jj < PAD || jj >= (nx+1)-PAD || ii >= ny-PAD) return;
   s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
     (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
@@ -17,7 +19,9 @@ __global__ void calc_s_y(
     const int nx, const int ny, const double dt, double* s_y, 
     const double* rho, const double* edgedy) 
 {
-  set_cuda_indices(0);
+  const int gid = threadIdx.x+blockIdx.x*blockDim.x;
+  const int jj = (gid % (nx));
+  const int ii = (gid / (nx));
   if(ii < PAD || jj < PAD || jj >= nx-PAD || ii >= (ny+1)-PAD) return;
   s_y[ind0] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
     (2.0*rho[ind0]*rho[ind0-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
@@ -27,7 +31,9 @@ __global__ void calc_initial_r2(
     const int nx, const int ny, double* s_x, double* s_y, 
     const double* x, double* p, double* r, double* reduce_array) 
 {
-  set_cuda_indices(0);
+  const int gid = threadIdx.x+blockIdx.x*blockDim.x;
+  const int jj = (gid % (nx));
+  const int ii = (gid / (nx));
   const int tid = threadIdx.x;
 
   __shared__ double sdata[NTHREADS];
@@ -54,7 +60,9 @@ __global__ void calc_pAp(
     const int nx, const int ny, const double* s_x, 
     const double* s_y, double* p, double* Ap, double* reduce_array) 
 {
-  set_cuda_indices(0);
+  const int gid = threadIdx.x+blockIdx.x*blockDim.x;
+  const int jj = (gid % (nx));
+  const int ii = (gid / (nx));
   const int tid = threadIdx.x;
 
   __shared__ double sdata[NTHREADS];
@@ -82,7 +90,9 @@ __global__ void calc_new_r2(
     const int nx, const int ny, double alpha, 
     double* x, double* p, double* r, double* Ap, double* reduce_array)
 {
-  set_cuda_indices(0);
+  const int gid = threadIdx.x+blockIdx.x*blockDim.x;
+  const int jj = (gid % (nx));
+  const int ii = (gid / (nx));
   const int tid = threadIdx.x;
 
   __shared__ double sdata[NTHREADS];
@@ -103,7 +113,9 @@ __global__ void calc_new_r2(
 __global__ void update_p(
     const int nx, const int ny, const double beta, const double* r, double* p)
 {
-  set_cuda_indices(0);
+  const int gid = threadIdx.x+blockIdx.x*blockDim.x;
+  const int jj = (gid % (nx));
+  const int ii = (gid / (nx));
   if(ii < PAD || jj < PAD || jj >= nx-PAD || ii >= ny-PAD) return;
 
   p[ind0] = r[ind0] + beta*p[ind0];
