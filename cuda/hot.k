@@ -51,7 +51,7 @@ __global__ void calc_initial_r2(
   }
   __syncthreads();
 
-  sum_reduce_in_shared<NTHREADS>(threadIdx.x, sdata);
+  sum_reduce_in_shared<double, NTHREADS>(threadIdx.x, sdata);
   if(tid == 0) 
     reduce_array[blockIdx.x] = sdata[0];
 }
@@ -81,7 +81,7 @@ __global__ void calc_pAp(
   }
   __syncthreads();
 
-  sum_reduce_in_shared<NTHREADS>(threadIdx.x, sdata);
+  sum_reduce_in_shared<double, NTHREADS>(threadIdx.x, sdata);
   if (tid == 0) 
     reduce_array[blockIdx.x] = sdata[0];
 }
@@ -105,7 +105,7 @@ __global__ void calc_new_r2(
   }
   __syncthreads();
 
-  sum_reduce_in_shared<NTHREADS>(threadIdx.x, sdata);
+  sum_reduce_in_shared<double, NTHREADS>(threadIdx.x, sdata);
   if (tid == 0) 
     reduce_array[blockIdx.x] = sdata[0];
 }

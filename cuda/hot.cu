@@ -7,7 +7,7 @@
 #include "../../cuda/shared.h"
 #include "../../profiler.h"
 #include "../../comms.h"
-#include "kernels.k"
+#include "hot.k"
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
