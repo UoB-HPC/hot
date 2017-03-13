@@ -29,6 +29,7 @@ int main(int argc, char** argv)
   mesh.rank = MASTER;
   mesh.nranks = 1;
   mesh.niters = get_int_parameter("iterations", params_filename);
+  const int max_inners = get_int_parameter("max_inners", params_filename);
 
   initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
   initialise_devices(mesh.rank);
@@ -52,7 +53,7 @@ int main(int argc, char** argv)
     int end_niters = 0;
     double end_error = 0.0;
     solve_diffusion_2d(
-        mesh.local_nx, mesh.local_ny, &mesh, mesh.dt, shared_data.x, 
+        mesh.local_nx, mesh.local_ny, &mesh, max_inners, mesh.dt, shared_data.x, 
         shared_data.r, shared_data.p, shared_data.rho, shared_data.s_x, 
         shared_data.s_y, shared_data.Ap, &end_niters, &end_error, 
         shared_data.reduce_array, mesh.edgedx, mesh.edgedy);

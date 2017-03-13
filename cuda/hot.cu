@@ -12,8 +12,8 @@
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
 void solve_diffusion_2d(
-    const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
-    double* r, double* p, double* rho, double* s_x, double* s_y, 
+    const int nx, const int ny, Mesh* mesh, const int max_inners, const double dt, 
+    double* x, double* r, double* p, double* rho, double* s_x, double* s_y, 
     double* Ap, int* end_niters, double* end_error, double* reduce_array,
     const double* edgedx, const double* edgedy)
 {
@@ -29,7 +29,7 @@ void solve_diffusion_2d(
 
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
-  for(ii = 0; ii < MAX_INNER_ITERATIONS; ++ii) {
+  for(ii = 0; ii < max_inners; ++ii) {
 
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap, reduce_array);
     const double global_pAp = reduce_all_sum(local_pAp);
@@ -130,17 +130,5 @@ void update_conjugate(
   gpu_check(cudaDeviceSynchronize());
 
   STOP_PROFILING(&compute_profile, "update conjugate");
-}
-
-// Prints the vector to std out
-void print_vec(
-    const int nx, const int ny, double* a)
-{
-  for(int ii = 0; ii < ny; ++ii) {
-    for(int jj = 0; jj < nx; ++jj) {
-      printf("%.3e ", a[ii*nx+jj]);
-    }
-    printf("\n");
-  }
 }
 
