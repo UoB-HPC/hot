@@ -43,6 +43,13 @@ int main(int argc, char** argv)
       mesh.y_off, mesh.width, mesh.height, hot_params, mesh.edgex, 
       mesh.edgey, &shared_data);
 
+  handle_boundary_2d(
+      mesh.local_nx, mesh.local_ny, &mesh, shared_data.rho, NO_INVERT, PACK);
+  handle_boundary_2d(
+      mesh.local_nx, mesh.local_ny, &mesh, shared_data.e, NO_INVERT, PACK);
+  handle_boundary_2d(
+      mesh.local_nx, mesh.local_ny, &mesh, shared_data.x, NO_INVERT, PACK);
+
   int tt = 0;
   double elapsed_sim_time = 0.0;
   double wallclock = 0.0;
