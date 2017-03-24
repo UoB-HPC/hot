@@ -17,9 +17,9 @@ int main(int argc, char** argv)
   }
 
   Mesh mesh = {0};
-  const char* params_filename = argv[1];
-  mesh.global_nx = get_int_parameter("nx", params_filename);
-  mesh.global_ny = get_int_parameter("ny", params_filename);
+  const char* hot_params = argv[1];
+  mesh.global_nx = get_int_parameter("nx", hot_params);
+  mesh.global_ny = get_int_parameter("ny", hot_params);
   mesh.local_nx = mesh.global_nx + 2*PAD;
   mesh.local_ny = mesh.global_ny + 2*PAD;
   mesh.width = get_double_parameter("width", ARCH_ROOT_PARAMS);
@@ -28,8 +28,9 @@ int main(int argc, char** argv)
   mesh.dt = get_double_parameter("max_dt", ARCH_ROOT_PARAMS);
   mesh.rank = MASTER;
   mesh.nranks = 1;
-  mesh.niters = get_int_parameter("iterations", params_filename);
-  const int max_inners = get_int_parameter("max_inners", params_filename);
+  mesh.niters = get_int_parameter("iterations", hot_params);
+  const int max_inners = get_int_parameter("max_inners", hot_params);
+  const int visit_dump = get_int_parameter("visit_dump", hot_params);
 
   initialise_mpi(argc, argv, &mesh.rank, &mesh.nranks);
   initialise_devices(mesh.rank);
@@ -39,7 +40,7 @@ int main(int argc, char** argv)
   SharedData shared_data = {0};
   initialise_shared_data_2d(
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
-      mesh.y_off, mesh.width, mesh.height, params_filename, mesh.edgex, 
+      mesh.y_off, mesh.width, mesh.height, hot_params, mesh.edgex, 
       mesh.edgey, &shared_data);
 
   int tt = 0;
@@ -78,10 +79,12 @@ int main(int argc, char** argv)
         wallclock, elapsed_sim_time);
   }
 
-  write_all_ranks_to_visit(
-      mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, 
-      mesh.x_off, mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, 
-      shared_data.x, "final_result", 0, elapsed_sim_time);
+  if(visit_dump) {
+    write_all_ranks_to_visit(
+        mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, 
+        mesh.x_off, mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, 
+        shared_data.x, "final_result", 0, elapsed_sim_time);
+  }
 
   finalise_shared_data(&shared_data);
   finalise_mesh(&mesh);
