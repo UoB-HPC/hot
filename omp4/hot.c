@@ -12,16 +12,15 @@
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
-void solve_diffusion(
-    const int nx, const int ny, Mesh* mesh, const double dt, double* x, 
-    double* r, double* p, double* rho, double* s_x, double* s_y, 
+void solve_diffusion_2d(
+    const int nx, const int ny, Mesh* mesh, const int max_inners, const double dt, 
+    double* x, double* r, double* p, double* rho, double* s_x, double* s_y, 
     double* Ap, int* end_niters, double* end_error, double* reduce_array,
     const double* edgedx, const double* edgedy)
 {
   // Store initial residual
   double local_old_r2 = initialise_cg(
       nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
-
   double global_old_r2 = reduce_all_sum(local_old_r2);
 
   handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
@@ -29,8 +28,7 @@ void solve_diffusion(
 
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
-  for(ii = 0; ii < MAX_INNER_ITERATIONS; ++ii) {
-
+  for(ii = 0; ii < max_inners; ++ii) {
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
     const double global_pAp = reduce_all_sum(local_pAp);
     const double alpha = global_old_r2/global_pAp;
