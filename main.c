@@ -56,7 +56,7 @@ int main(int argc, char** argv)
         mesh.local_nx, mesh.local_ny, &mesh, max_inners, mesh.dt, shared_data.x, 
         shared_data.r, shared_data.p, shared_data.rho, shared_data.s_x, 
         shared_data.s_y, shared_data.Ap, &end_niters, &end_error, 
-        shared_data.reduce_array, mesh.edgedx, mesh.edgedy);
+        shared_data.reduce_array0, mesh.edgedx, mesh.edgedy);
 
     if(mesh.rank == MASTER) {
       printf("finished on diffusion iteration %d with error %e\n", 
