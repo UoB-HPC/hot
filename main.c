@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <omp.h>
 #include "hot_interface.h"
 #include "hot_data.h"
 #include "../profiler.h"
@@ -58,6 +59,8 @@ int main(int argc, char** argv)
       printf("step %d\n", tt+1);
     }
 
+    double w0 = omp_get_wtime();
+
     int end_niters = 0;
     double end_error = 0.0;
     solve_diffusion_2d(
@@ -65,6 +68,8 @@ int main(int argc, char** argv)
         shared_data.r, shared_data.p, shared_data.rho, shared_data.s_x, 
         shared_data.s_y, shared_data.Ap, &end_niters, &end_error, 
         shared_data.reduce_array0, mesh.edgedx, mesh.edgedy);
+
+    wallclock += omp_get_wtime()-w0;
 
     if(mesh.rank == MASTER) {
       printf("finished on diffusion iteration %d with error %e\n", 
@@ -82,7 +87,7 @@ int main(int argc, char** argv)
 
   if(mesh.rank == MASTER) {
     PRINT_PROFILING_RESULTS(&compute_profile);
-    printf("wallclock %.4f, elapsed simulation time %.4fs\n", 
+    printf("wallclock %.4fs, elapsed simulation time %.4fs\n", 
         wallclock, elapsed_sim_time);
   }
 

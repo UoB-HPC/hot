@@ -1,10 +1,10 @@
 # User defined parameters
-KERNELS 	  	= omp3
-COMPILER    	= INTEL
+KERNELS 	  	= cuda
+COMPILER    	= CRAY
 MPI						= yes
 DECOMP				= TILES
 CFLAGS_INTEL	= -qopenmp -no-prec-div -std=gnu99 -DINTEL \
-								-Wall -qopt-report=5 -xhost
+								-Wall -qopt-report=5 #-xhost
 CFLAGS_GCC		= -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
 CFLAGS_CRAY		= -lrt -hlist=a
 OPTIONS		  	= -DENABLE_PROFILING 
@@ -30,8 +30,8 @@ OPTIONS += -DCOLS
 endif
 
 # Default compiler
-ARCH_COMPILER_CC   = mpicc
-ARCH_COMPILER_CPP  = mpic++
+ARCH_COMPILER_CC   = cc
+ARCH_COMPILER_CPP  = CC
 ARCH_LINKER    		= $(ARCH_COMPILER_CC)
 ARCH_FLAGS     		= $(CFLAGS_$(COMPILER))
 ARCH_LDFLAGS   		= $(ARCH_FLAGS) -lm

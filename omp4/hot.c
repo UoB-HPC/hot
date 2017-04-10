@@ -36,7 +36,7 @@ void solve_diffusion_2d(
     handle_boundary_2d(nx, ny, mesh, x, NO_INVERT, PACK);
 
     // Check if the solution has converged
-    if(fabs(global_new_r2) < 1.0e-10) {
+    if(fabs(global_new_r2) < EPS) {
       global_old_r2 = global_new_r2;
       break;
     }
