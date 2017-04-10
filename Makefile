@@ -1,5 +1,5 @@
 # User defined parameters
-KERNELS 	  	= cuda
+KERNELS 	  	= omp4
 COMPILER    	= CRAY
 MPI						= yes
 DECOMP				= TILES

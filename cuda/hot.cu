@@ -4,6 +4,7 @@
 #include <math.h>
 #include "hot.h"
 #include "../hot_interface.h"
+#include "../hot_data.h"
 #include "../../cuda/shared.h"
 #include "../../profiler.h"
 #include "../../comms.h"

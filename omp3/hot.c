@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include "hot.h"
+#include "../hot_data.h"
 #include "../hot_interface.h"
 #include "../../profiler.h"
 #include "../../comms.h"

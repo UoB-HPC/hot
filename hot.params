@@ -1,8 +1,8 @@
 problem_0 density=1.0e0 energy=0.1 temperature=1.3 xpos=0.0 ypos=0.0 width=1.0 height=1.0
-problem_1 density=1.0e3 energy=2.0 temperature=9.3 xpos=0.4 ypos=0.4 width=0.2 height=0.2
+problem_1 density=1.0e2 energy=2.0 temperature=9.3 xpos=0.4 ypos=0.4 width=0.2 height=0.2
 dt         1.0e-2
-nx         1000
-ny         1000
-iterations 10
+nx         4000
+ny         4000
+iterations 1
 max_inners 10000
 visit_dump 0

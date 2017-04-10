@@ -11,8 +11,8 @@ __global__ void calc_s_x(
   const int jj = (gid % (nx+1));
   const int ii = (gid / (nx+1));
   if(ii < PAD || jj < PAD || jj >= (nx+1)-PAD || ii >= ny-PAD) return;
-  s_x[ind1] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-1]))/
-    (2.0*rho[ind0]*rho[ind0-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
+  s_x[(ii*(nx+1)+jj)] = (dt*CONDUCTIVITY*(rho[(ii*nx+jj)]+rho[(ii*nx+jj)-1]))/
+    (2.0*rho[(ii*nx+jj)]*rho[(ii*nx+jj)-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
 }
 
 __global__ void calc_s_y(
@@ -23,8 +23,8 @@ __global__ void calc_s_y(
   const int jj = (gid % (nx));
   const int ii = (gid / (nx));
   if(ii < PAD || jj < PAD || jj >= nx-PAD || ii >= (ny+1)-PAD) return;
-  s_y[ind0] = (dt*CONDUCTIVITY*(rho[ind0]+rho[ind0-nx]))/
-    (2.0*rho[ind0]*rho[ind0-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
+  s_y[(ii*nx+jj)] = (dt*CONDUCTIVITY*(rho[(ii*nx+jj)]+rho[(ii*nx+jj)-nx]))/
+    (2.0*rho[(ii*nx+jj)]*rho[(ii*nx+jj)-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
 }
 
 __global__ void calc_initial_r2(
@@ -40,14 +40,14 @@ __global__ void calc_initial_r2(
   sdata[tid] = 0.0;
 
   if(ii >= PAD && jj >= PAD && jj < nx-PAD && ii < ny-PAD) {
-    r[ind0] = x[ind0] -
-      ((s_y[ind0]+s_x[ind1]+1.0+s_x[ind1+1]+s_y[ind0+nx])*x[ind0]
-       - s_y[ind0]*x[ind0-nx]
-       - s_x[ind1]*x[ind0-1] 
-       - s_x[ind1+1]*x[ind0+1]
-       - s_y[ind0+nx]*x[ind0+nx]);
-    p[ind0] = r[ind0];
-    sdata[tid] = r[ind0]*r[ind0];
+    r[(ii*nx+jj)] = x[(ii*nx+jj)] -
+      ((s_y[(ii*nx+jj)]+s_x[(ii*(nx+1)+jj)]+1.0+s_x[(ii*(nx+1)+jj)+1]+s_y[(ii*nx+jj)+nx])*x[(ii*nx+jj)]
+       - s_y[(ii*nx+jj)]*x[(ii*nx+jj)-nx]
+       - s_x[(ii*(nx+1)+jj)]*x[(ii*nx+jj)-1] 
+       - s_x[(ii*(nx+1)+jj)+1]*x[(ii*nx+jj)+1]
+       - s_y[(ii*nx+jj)+nx]*x[(ii*nx+jj)+nx]);
+    p[(ii*nx+jj)] = r[(ii*nx+jj)];
+    sdata[tid] = r[(ii*nx+jj)]*r[(ii*nx+jj)];
   }
   __syncthreads();
 
@@ -71,13 +71,13 @@ __global__ void calc_pAp(
   // You don't need to use a matrix as the band matrix is fully predictable
   // from the 5pt stencil
   if(ii >= PAD & jj >= PAD && jj < nx-PAD && ii < ny-PAD) {
-    Ap[ind0] = 
-      (s_y[ind0]+s_x[ind1]+1.0+s_x[ind1+1]+s_y[ind0+nx])*p[ind0]
-      - s_y[ind0]*p[ind0-nx]
-      - s_x[ind1]*p[ind0-1] 
-      - s_x[ind1+1]*p[ind0+1]
-      - s_y[ind0+nx]*p[ind0+nx];
-    sdata[threadIdx.x] = p[ind0]*Ap[ind0];
+    Ap[(ii*nx+jj)] = 
+      (s_y[(ii*nx+jj)]+s_x[(ii*(nx+1)+jj)]+1.0+s_x[(ii*(nx+1)+jj)+1]+s_y[(ii*nx+jj)+nx])*p[(ii*nx+jj)]
+      - s_y[(ii*nx+jj)]*p[(ii*nx+jj)-nx]
+      - s_x[(ii*(nx+1)+jj)]*p[(ii*nx+jj)-1] 
+      - s_x[(ii*(nx+1)+jj)+1]*p[(ii*nx+jj)+1]
+      - s_y[(ii*nx+jj)+nx]*p[(ii*nx+jj)+nx];
+    sdata[threadIdx.x] = p[(ii*nx+jj)]*Ap[(ii*nx+jj)];
   }
   __syncthreads();
 
@@ -99,9 +99,9 @@ __global__ void calc_new_r2(
   sdata[tid] = 0.0;
 
   if(ii >= PAD & jj >= PAD && jj < nx-PAD && ii < ny-PAD) {
-    x[ind0] += alpha*p[ind0];
-    r[ind0] -= alpha*Ap[ind0];
-    sdata[threadIdx.x] = r[ind0]*r[ind0];
+    x[(ii*nx+jj)] += alpha*p[(ii*nx+jj)];
+    r[(ii*nx+jj)] -= alpha*Ap[(ii*nx+jj)];
+    sdata[threadIdx.x] = r[(ii*nx+jj)]*r[(ii*nx+jj)];
   }
   __syncthreads();
 
@@ -118,6 +118,6 @@ __global__ void update_p(
   const int ii = (gid / (nx));
   if(ii < PAD || jj < PAD || jj >= nx-PAD || ii >= ny-PAD) return;
 
-  p[ind0] = r[ind0] + beta*p[ind0];
+  p[(ii*nx+jj)] = r[(ii*nx+jj)] + beta*p[(ii*nx+jj)];
 }
 
