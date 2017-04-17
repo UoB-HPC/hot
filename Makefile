@@ -1,10 +1,12 @@
 # User defined parameters
 KERNELS 	  		= omp3
-COMPILER    		= INTEL
+COMPILER    		= INTEL_KNL
 MPI							= no
 DECOMP					= TILES
 CFLAGS_INTEL		= -qopenmp -no-prec-div -std=gnu99 -DINTEL \
 									-Wall -qopt-report=5 #-xhost
+CFLAGS_INTEL_KNL 	 = -O3 -g -qopenmp -no-prec-div -std=gnu99 -DINTEL \
+								 	   -xMIC-AVX512 -Wall -qopt-report=5
 CFLAGS_GCC			= -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
 CFLAGS_CRAY			= -lrt -hlist=a
 CFLAGS_XL				= -O3 -qsmp=omp
