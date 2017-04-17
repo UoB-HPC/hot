@@ -80,7 +80,7 @@ double initialise_cg(
   }
 
   double initial_r2 = 0.0;
-#pragma omp target teams distribute parallel for reduction(+: initial_r2)
+#pragma omp target teams distribute parallel for map(tofrom:initial_r2) reduction(+: initial_r2)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       r[(ii*nx+jj)] = x[(ii*nx+jj)] -
@@ -108,7 +108,7 @@ double calculate_pAp(
   // You don't need to use a matrix as the band matrix is fully predictable
   // from the 5pt stencil
   double pAp = 0.0;
-#pragma omp target teams distribute parallel for reduction(+: pAp)
+#pragma omp target teams distribute parallel for map(tofrom:pAp) reduction(+: pAp)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       Ap[(ii*nx+jj)] = 
@@ -133,7 +133,7 @@ double calculate_new_r2(
 
   double new_r2 = 0.0;
 
-#pragma omp target teams distribute parallel for reduction(+: new_r2)
+#pragma omp target teams distribute parallel for map(tofrom:new_r2) reduction(+: new_r2)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       x[(ii*nx+jj)] += alpha*p[(ii*nx+jj)];
