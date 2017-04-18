@@ -1,17 +1,20 @@
 # User defined parameters
-KERNELS 	  		= omp3
-COMPILER    		= INTEL_KNL
-MPI							= no
-DECOMP					= TILES
-CFLAGS_INTEL		= -qopenmp -no-prec-div -std=gnu99 -DINTEL \
-									-Wall -qopt-report=5 #-xhost
-CFLAGS_INTEL_KNL 	 = -O3 -g -qopenmp -no-prec-div -std=gnu99 -DINTEL \
-								 	   -xMIC-AVX512 -Wall -qopt-report=5
-CFLAGS_GCC			= -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
-CFLAGS_CRAY			= -lrt -hlist=a
-CFLAGS_XL				= -O3 -qsmp=omp
-CFLAGS_XL_OMP4	= -qsmp -qoffload
-OPTIONS		  		= -DENABLE_PROFILING 
+KERNELS 	  			 = omp3
+COMPILER    			 = GCC_POWER
+MPI								 = no
+DECOMP						 = TILES
+CFLAGS_INTEL			 = -qopenmp -no-prec-div -std=gnu99 -DINTEL \
+									 	-Wall -qopt-report=5 #-xhost
+CFLAGS_INTEL_KNL	  	 = -O3 -g -qopenmp -no-prec-div -std=gnu99 -DINTEL \
+									  	   -xMIC-AVX512 -Wall -qopt-report=5
+CFLAGS_GCC				 = -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
+CFLAGS_GCC_POWER   = -O3 -g -mcpu=power8 -mtune=power8 -fopenmp -std=gnu99
+CFLAGS_CRAY				 = -lrt -hlist=a
+CFLAGS_XL					 = -O3 -qsmp=omp
+CFLAGS_XL_OMP4		 = -qsmp -qoffload
+CFLAGS_CLANG_OMP4  = -O3 -Wall -fopenmp-targets=nvptx64-nvidia-cuda -fopenmp-nonaliased-maps \
+										 -fopenmp=libomp --cuda-path=/home/projects/pwr8-rhel73-lsf/cuda/8.0.44/ 
+OPTIONS		  			 = -DENABLE_PROFILING 
 
 ifeq ($(DEBUG), yes)
   OPTIONS += -O0 -g -DDEBUG 

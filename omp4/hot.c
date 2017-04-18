@@ -64,14 +64,14 @@ double initialise_cg(
   // https://inldigitallibrary.inl.gov/sti/3952796.pdf
   // Take the average of the coefficients at the cells surrounding 
   // each face
-#pragma omp target teams distribute parallel for
+#pragma omp target teams distribute parallel for collapse(2) thread_limit(128) num_teams((int)ceil(nx*ny/128.0))
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
       s_x[(ii*(nx+1)+jj)] = (dt*CONDUCTIVITY*(rho[(ii*nx+jj)]+rho[(ii*nx+jj)-1]))/
         (2.0*rho[(ii*nx+jj)]*rho[(ii*nx+jj)-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
     }
   }
-#pragma omp target teams distribute parallel for
+#pragma omp target teams distribute parallel for collapse(2) thread_limit(128) num_teams((int)ceil(nx*ny/128.0))
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       s_y[(ii*nx+jj)] = (dt*CONDUCTIVITY*(rho[(ii*nx+jj)]+rho[(ii*nx+jj)-nx]))/
@@ -80,7 +80,7 @@ double initialise_cg(
   }
 
   double initial_r2 = 0.0;
-#pragma omp target teams distribute parallel for map(tofrom:initial_r2) reduction(+: initial_r2)
+#pragma omp target teams distribute parallel for collapse(2) thread_limit(128) num_teams((int)ceil(nx*ny/128.0)) map(tofrom:initial_r2) reduction(+: initial_r2)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       r[(ii*nx+jj)] = x[(ii*nx+jj)] -
@@ -108,7 +108,7 @@ double calculate_pAp(
   // You don't need to use a matrix as the band matrix is fully predictable
   // from the 5pt stencil
   double pAp = 0.0;
-#pragma omp target teams distribute parallel for map(tofrom:pAp) reduction(+: pAp)
+#pragma omp target teams distribute parallel for collapse(2) thread_limit(128) num_teams((int)ceil(nx*ny/128.0)) map(tofrom:pAp) reduction(+: pAp)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       Ap[(ii*nx+jj)] = 
@@ -133,7 +133,7 @@ double calculate_new_r2(
 
   double new_r2 = 0.0;
 
-#pragma omp target teams distribute parallel for map(tofrom:new_r2) reduction(+: new_r2)
+#pragma omp target teams distribute parallel for collapse(2) thread_limit(128) num_teams((int)ceil(nx*ny/128.0)) map(tofrom:new_r2) reduction(+: new_r2)
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       x[(ii*nx+jj)] += alpha*p[(ii*nx+jj)];
@@ -151,7 +151,7 @@ void update_conjugate(
     const int nx, const int ny, const double beta, const double* r, double* p)
 {
   START_PROFILING(&compute_profile);
-#pragma omp target teams distribute parallel for
+#pragma omp target teams distribute parallel for collapse(2) thread_limit(128) num_teams((int)ceil(nx*ny/128.0))
   for(int ii = PAD; ii < ny-PAD; ++ii) {
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       p[(ii*nx+jj)] = r[(ii*nx+jj)] + beta*p[(ii*nx+jj)];
