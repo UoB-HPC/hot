@@ -23,7 +23,14 @@ CFLAGS_CLANG_OMP4  = -O3 -Wall -fopenmp-targets=nvptx64-nvidia-cuda -fopenmp-non
 										 -fopenmp=libomp --cuda-path=$(CUDAROOT)
 CFLAGS_PGI				 = -O3 -fast -mp
 
+ifeq ($(KERNELS), cuda)
+  CHECK_CUDA_ROOT = yes
+endif
 ifeq ($(COMPILER), CLANG_OMP4)
+  CHECK_CUDA_ROOT = yes
+endif
+
+ifeq ($(CHECK_CUDA_ROOT), yes)
 ifeq ("${CUDAROOT}", "")
 $(error "$$CUDAROOT is not set, please set this to the root of your CUDA install.")
 endif
