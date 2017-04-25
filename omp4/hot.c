@@ -39,6 +39,7 @@ void solve_diffusion_2d(
     // Check if the solution has converged
     if(fabs(global_new_r2) < EPS) {
       global_old_r2 = global_new_r2;
+      printf("Successfully converged.\n");
       break;
     }
 
@@ -49,7 +50,7 @@ void solve_diffusion_2d(
     global_old_r2 = global_new_r2;
   }
 
-  *end_niters = ii;
+  *end_niters = ii+1;
   *end_error = global_old_r2;
 }
 
