@@ -38,8 +38,6 @@ endif
 
 ifeq ($(DEBUG), yes)
   OPTIONS += -O0 -g -DDEBUG 
-else
-  OPTIONS += -O3
 endif
 
 ifeq ($(MPI), yes)
