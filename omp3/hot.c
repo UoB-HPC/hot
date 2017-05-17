@@ -12,13 +12,14 @@
 // of the context of the problem etc.
 void solve_diffusion_2d(
     const int nx, const int ny, Mesh* mesh, const int max_inners, const double dt, 
+    const double heat_capacity, const double conductivity,
     double* x, double* r, double* p, double* rho, double* s_x, double* s_y, 
     double* Ap, int* end_niters, double* end_error, double* reduce_array,
     const double* edgedx, const double* edgedy)
 {
   // Store initial residual
   double local_old_r2 = initialise_cg(
-      nx, ny, dt, p, r, x, rho, s_x, s_y, edgedx, edgedy);
+      nx, ny, dt, heat_capacity, conductivity, p, r, x, rho, s_x, s_y, edgedx, edgedy);
   double global_old_r2 = reduce_all_sum(local_old_r2);
 
   handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
@@ -56,9 +57,10 @@ void solve_diffusion_2d(
 
 // Initialises the CG solver
 double initialise_cg(
-    const int nx, const int ny, const double dt, double* p, double* r,
-    const double* x, const double* rho, double* s_x, double* s_y, 
-    const double* edgedx, const double* edgedy)
+    const int nx, const int ny, const double dt, const double heat_capacity, 
+    const double conductivity, double* p, double* r, const double* x, 
+    const double* rho, double* s_x, double* s_y, const double* edgedx, 
+    const double* edgedy)
 {
   START_PROFILING(&compute_profile);
 
@@ -69,16 +71,16 @@ double initialise_cg(
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
-      s_x[(ii*(nx+1)+jj)] = (dt*CONDUCTIVITY*(rho[(ii*nx+jj)]+rho[(ii*nx+jj)-1]))/
-        (2.0*rho[(ii*nx+jj)]*rho[(ii*nx+jj)-1]*edgedx[jj]*edgedx[jj]*HEAT_CAPACITY);
+      s_x[(ii)*(nx+1)+(jj)] = (dt*conductivity*(rho[(ii)*nx+(jj)]+rho[(ii)*nx+(jj-1)]))/
+        (2.0*rho[(ii)*nx+(jj)]*rho[(ii)*nx+(jj-1)]*edgedx[jj]*edgedx[jj]*heat_capacity);
     }
   }
 #pragma omp parallel for
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      s_y[(ii*nx+jj)] = (dt*CONDUCTIVITY*(rho[(ii*nx+jj)]+rho[(ii*nx+jj)-nx]))/
-        (2.0*rho[(ii*nx+jj)]*rho[(ii*nx+jj)-nx]*edgedy[ii]*edgedy[ii]*HEAT_CAPACITY);
+      s_y[(ii)*nx+(jj)] = (dt*conductivity*(rho[(ii)*nx+(jj)]+rho[(ii)*nx+(jj)-nx]))/
+        (2.0*rho[(ii)*nx+(jj)]*rho[(ii)*nx+(jj)-nx]*edgedy[ii]*edgedy[ii]*heat_capacity);
     }
   }
 
@@ -87,15 +89,15 @@ double initialise_cg(
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      r[(ii*nx+jj)] = x[(ii*nx+jj)] -
-        ((s_y[(ii*nx+jj)]+s_x[(ii*(nx+1)+jj)]+1.0+
-          s_x[(ii*(nx+1)+jj)+1]+s_y[(ii*nx+jj)+nx])*x[(ii*nx+jj)]
-         - s_y[(ii*nx+jj)]*x[(ii*nx+jj)-nx]
-         - s_x[(ii*(nx+1)+jj)]*x[(ii*nx+jj)-1] 
-         - s_x[(ii*(nx+1)+jj)+1]*x[(ii*nx+jj)+1]
-         - s_y[(ii*nx+jj)+nx]*x[(ii*nx+jj)+nx]);
-      p[(ii*nx+jj)] = r[(ii*nx+jj)];
-      initial_r2 += r[(ii*nx+jj)]*r[(ii*nx+jj)];
+      r[(ii)*nx+(jj)] = x[(ii)*nx+(jj)] -
+        ((s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
+          s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii)*nx+(jj)+nx])*x[(ii)*nx+(jj)]
+         - s_y[(ii)*nx+(jj)]*x[(ii)*nx+(jj)-nx]
+         - s_x[(ii)*(nx+1)+(jj)]*x[(ii)*nx+(jj-1)] 
+         - s_x[(ii)*(nx+1)+(jj+1)]*x[(ii)*nx+(jj+1)]
+         - s_y[(ii)*nx+(jj)+nx]*x[(ii)*nx+(jj)+nx]);
+      p[(ii)*nx+(jj)] = r[(ii)*nx+(jj)];
+      initial_r2 += r[(ii)*nx+(jj)]*r[(ii)*nx+(jj)];
     }
   }
 
@@ -117,14 +119,14 @@ double calculate_pAp(
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      Ap[(ii*nx+jj)] = 
-        (s_y[(ii*nx+jj)]+s_x[(ii*(nx+1)+jj)]+1.0+
-         s_x[(ii*(nx+1)+jj)+1]+s_y[(ii*nx+jj)+nx])*p[(ii*nx+jj)]
-        - s_y[(ii*nx+jj)]*p[(ii*nx+jj)-nx]
-        - s_x[(ii*(nx+1)+jj)]*p[(ii*nx+jj)-1] 
-        - s_x[(ii*(nx+1)+jj)+1]*p[(ii*nx+jj)+1]
-        - s_y[(ii*nx+jj)+nx]*p[(ii*nx+jj)+nx];
-      pAp += p[(ii*nx+jj)]*Ap[(ii*nx+jj)];
+      Ap[(ii)*nx+(jj)] = 
+        (s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj+1)]+1.0+
+         s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii)*nx+(jj)+nx])*p[(ii)*nx+(jj)]
+        - s_y[(ii)*nx+(jj)]*p[(ii)*nx+(jj)-nx]
+        - s_x[(ii)*(nx+1)+(jj)]*p[(ii)*nx+(jj-1)] 
+        - s_x[(ii)*(nx+1)+(jj+1)]*p[(ii)*nx+(jj+1)]
+        - s_y[(ii)*nx+(jj)+nx]*p[(ii)*nx+(jj)+nx];
+      pAp += p[(ii)*nx+(jj)]*Ap[(ii)*nx+(jj)];
     }
   }
 
@@ -144,9 +146,9 @@ double calculate_new_r2(
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      x[(ii*nx+jj)] += alpha*p[(ii*nx+jj)];
-      r[(ii*nx+jj)] -= alpha*Ap[(ii*nx+jj)];
-      new_r2 += r[(ii*nx+jj)]*r[(ii*nx+jj)];
+      x[(ii)*nx+(jj)] += alpha*p[(ii)*nx+(jj)];
+      r[(ii)*nx+(jj)] -= alpha*Ap[(ii)*nx+(jj)];
+      new_r2 += r[(ii)*nx+(jj)]*r[(ii)*nx+(jj)];
     }
   }
 
@@ -163,7 +165,7 @@ void update_conjugate(
   for(int ii = PAD; ii < ny-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      p[(ii*nx+jj)] = r[(ii*nx+jj)] + beta*p[(ii*nx+jj)];
+      p[(ii)*nx+(jj)] = r[(ii)*nx+(jj)] + beta*p[(ii)*nx+(jj)];
     }
   }
   STOP_PROFILING(&compute_profile, "update conjugate");

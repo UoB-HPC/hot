@@ -38,6 +38,9 @@ int main(int argc, char** argv)
   initialise_comms(&mesh);
   initialise_mesh_2d(&mesh);
 
+  HotData hot_data = {0};
+  initialise_hot_data(&hot_data, hot_params);
+
   SharedData shared_data = {0};
   initialise_shared_data_2d(
       mesh.global_nx, mesh.global_ny, mesh.local_nx, mesh.local_ny, mesh.x_off, 
@@ -51,9 +54,17 @@ int main(int argc, char** argv)
   handle_boundary_2d(
       mesh.local_nx, mesh.local_ny, &mesh, shared_data.x, NO_INVERT, PACK);
 
+  if(visit_dump) {
+    write_all_ranks_to_visit(
+        mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, 
+        mesh.x_off, mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, 
+        shared_data.x, "final_result", 0, 0.0);
+  }
+
   int tt = 0;
   double elapsed_sim_time = 0.0;
   double wallclock = 0.0;
+
   for(tt = 0; tt < mesh.niters; ++tt) {
     if(mesh.rank == MASTER) {
       printf("step %d\n", tt+1);
@@ -64,7 +75,8 @@ int main(int argc, char** argv)
     int end_niters = 0;
     double end_error = 0.0;
     solve_diffusion_2d(
-        mesh.local_nx, mesh.local_ny, &mesh, max_inners, mesh.dt, shared_data.x, 
+        mesh.local_nx, mesh.local_ny, &mesh, max_inners, mesh.dt, 
+        hot_data.heat_capacity, hot_data.conductivity,  shared_data.x, 
         shared_data.r, shared_data.p, shared_data.rho, shared_data.s_x, 
         shared_data.s_y, shared_data.Ap, &end_niters, &end_error, 
         shared_data.reduce_array0, mesh.edgedx, mesh.edgedy);
@@ -95,7 +107,7 @@ int main(int argc, char** argv)
     write_all_ranks_to_visit(
         mesh.global_nx+2*PAD, mesh.global_ny+2*PAD, mesh.local_nx, mesh.local_ny, 
         mesh.x_off, mesh.y_off, mesh.rank, mesh.nranks, mesh.neighbours, 
-        shared_data.x, "final_result", 0, elapsed_sim_time);
+        shared_data.x, "final_result", 1, elapsed_sim_time);
   }
 
   finalise_shared_data(&shared_data);

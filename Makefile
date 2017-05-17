@@ -1,10 +1,10 @@
 # User defined parameters
-KERNELS 	  			 = omp4
-COMPILER    			 = CLANG_OMP4
+KERNELS 	  			 = omp3
+COMPILER    			 = INTEL
 MPI								 = no
 DECOMP						 = TILES
-ARCH_COMPILER_CC   = ~/llvm/build/bin/clang
-ARCH_COMPILER_CPP  = ~/llvm/build/bin/clang++
+ARCH_COMPILER_CC   = mpicc
+ARCH_COMPILER_CPP  = mpic++
 OPTIONS		  			 = -DENABLE_PROFILING 
 
 # Compiler-specific flags
