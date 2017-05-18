@@ -79,8 +79,8 @@ double initialise_cg(
   for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
-      s_y[(ii)*nx+(jj)] = (dt*conductivity*(rho[(ii)*nx+(jj)]+rho[(ii)*nx+(jj)-nx]))/
-        (2.0*rho[(ii)*nx+(jj)]*rho[(ii)*nx+(jj)-nx]*edgedy[ii]*edgedy[ii]*heat_capacity);
+      s_y[(ii)*nx+(jj)] = (dt*conductivity*(rho[(ii)*nx+(jj)]+rho[(ii-1)*nx+(jj)]))/
+        (2.0*rho[(ii)*nx+(jj)]*rho[(ii-1)*nx+(jj)]*edgedy[ii]*edgedy[ii]*heat_capacity);
     }
   }
 
@@ -91,11 +91,11 @@ double initialise_cg(
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       r[(ii)*nx+(jj)] = x[(ii)*nx+(jj)] -
         ((s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
-          s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii)*nx+(jj)+nx])*x[(ii)*nx+(jj)]
-         - s_y[(ii)*nx+(jj)]*x[(ii)*nx+(jj)-nx]
+          s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii+1)*nx+(jj)])*x[(ii)*nx+(jj)]
+         - s_y[(ii)*nx+(jj)]*x[(ii-1)*nx+(jj)]
          - s_x[(ii)*(nx+1)+(jj)]*x[(ii)*nx+(jj-1)] 
          - s_x[(ii)*(nx+1)+(jj+1)]*x[(ii)*nx+(jj+1)]
-         - s_y[(ii)*nx+(jj)+nx]*x[(ii)*nx+(jj)+nx]);
+         - s_y[(ii+1)*nx+(jj)]*x[(ii+1)*nx+(jj)]);
       p[(ii)*nx+(jj)] = r[(ii)*nx+(jj)];
       initial_r2 += r[(ii)*nx+(jj)]*r[(ii)*nx+(jj)];
     }
@@ -120,12 +120,12 @@ double calculate_pAp(
 #pragma omp simd
     for(int jj = PAD; jj < nx-PAD; ++jj) {
       Ap[(ii)*nx+(jj)] = 
-        (s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj+1)]+1.0+
-         s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii)*nx+(jj)+nx])*p[(ii)*nx+(jj)]
-        - s_y[(ii)*nx+(jj)]*p[(ii)*nx+(jj)-nx]
+        (s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
+         s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii+1)*nx+(jj)])*p[(ii)*nx+(jj)]
+        - s_y[(ii)*nx+(jj)]*p[(ii-1)*nx+(jj)]
         - s_x[(ii)*(nx+1)+(jj)]*p[(ii)*nx+(jj-1)] 
         - s_x[(ii)*(nx+1)+(jj+1)]*p[(ii)*nx+(jj+1)]
-        - s_y[(ii)*nx+(jj)+nx]*p[(ii)*nx+(jj)+nx];
+        - s_y[(ii+1)*nx+(jj)]*p[(ii+1)*nx+(jj)];
       pAp += p[(ii)*nx+(jj)]*Ap[(ii)*nx+(jj)];
     }
   }
