@@ -5,8 +5,9 @@
 
 // Initialises the CG solver
 double initialise_cg(
-    const int nx, const int ny, const double dt, double* p, double* r,
-    const double* x, const double* rho, double* s_x, double* s_y, double* reduce_array,
+    const int nx, const int ny, const double dt, const double heat_capacity, 
+    const double conductivity, double* p, double* r, const double* x, 
+    const double* rho, double* s_x, double* s_y, double* reduce_array,
     const double* edgedx, const double* edgedy);
 
 // Calculates a value for alpha

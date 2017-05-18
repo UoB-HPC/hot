@@ -14,13 +14,14 @@
 // of the context of the problem etc.
 void solve_diffusion_2d(
     const int nx, const int ny, Mesh* mesh, const int max_inners, const double dt, 
-    double* x, double* r, double* p, double* rho, double* s_x, double* s_y, 
-    double* Ap, int* end_niters, double* end_error, double* reduce_array,
-    const double* edgedx, const double* edgedy)
+    const double heat_capacity, const double conductivity, double* x, double* r, 
+    double* p, double* rho, double* s_x, double* s_y, double* Ap, int* end_niters, 
+    double* end_error, double* reduce_array, const double* edgedx, const double* edgedy)
 {
   // Store initial residual
   double local_old_r2 = initialise_cg(
-      nx, ny, dt, p, r, x, rho, s_x, s_y, reduce_array, edgedx, edgedy);
+      nx, ny, dt, heat_capacity, conductivity, p, r, x, rho, s_x, s_y, 
+      reduce_array, edgedx, edgedy);
 
   double global_old_r2 = reduce_all_sum(
       local_old_r2);
@@ -60,18 +61,19 @@ void solve_diffusion_2d(
 
 // Initialises the CG solver
 double initialise_cg(
-    const int nx, const int ny, const double dt, double* p, double* r,
-    const double* x, const double* rho, double* s_x, double* s_y, double* reduce_array,
+    const int nx, const int ny, const double dt, const double heat_capacity, 
+    const double conductivity, double* p, double* r, const double* x, 
+    const double* rho, double* s_x, double* s_y, double* reduce_array,
     const double* edgedx, const double* edgedy)
 {
   int nblocks = ceil((nx+1)*ny/(double)NTHREADS);
   calc_s_x<<<nblocks, NTHREADS>>>(
-      nx, ny, dt, s_x, rho, edgedx);
+      nx, ny, dt, heat_capacity, conductivity, s_x, rho, edgedx);
   gpu_check(cudaDeviceSynchronize());
 
   nblocks = ceil(nx*(ny+1)/(double)NTHREADS);
   calc_s_y<<<nblocks, NTHREADS>>>(
-      nx, ny, dt, s_y, rho, edgedy);
+      nx, ny, dt, heat_capacity, conductivity, s_y, rho, edgedy);
   gpu_check(cudaDeviceSynchronize());
 
   nblocks = ceil(nx*ny/(double)NTHREADS);

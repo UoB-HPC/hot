@@ -16,8 +16,8 @@ __global__ void calc_s_x(
 }
 
 __global__ void calc_s_y(
-    const int nx, const int ny, const double dt, double* s_y, const double heat_capacity,
-    const double conductivity, const double* rho, const double* edgedy) 
+    const int nx, const int ny, const double dt, const double heat_capacity,
+    const double conductivity, double* s_y, const double* rho, const double* edgedy) 
 {
   const int gid = threadIdx.x+blockIdx.x*blockDim.x;
   const int jj = (gid % (nx));
@@ -43,8 +43,8 @@ __global__ void calc_initial_r2(
     r[(ii)*nx+(jj)] = x[(ii)*nx+(jj)] -
       ((s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
         s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii+1)*nx+(jj)])*x[(ii)*nx+(jj)]
-       - s_y[(ii-1)*nx+(jj)]*x[(ii-1)*nx+(jj)]
-       - s_x[(ii)*(nx+1)+(jj-1)]*x[(ii)*nx+(jj-1)] 
+       - s_y[(ii)*nx+(jj)]*x[(ii-1)*nx+(jj)]
+       - s_x[(ii)*(nx+1)+(jj)]*x[(ii)*nx+(jj-1)] 
        - s_x[(ii)*(nx+1)+(jj+1)]*x[(ii)*nx+(jj+1)]
        - s_y[(ii+1)*nx+(jj)]*x[(ii+1)*nx+(jj)]);
     p[(ii)*nx+(jj)] = r[(ii)*nx+(jj)];
@@ -75,8 +75,8 @@ __global__ void calc_pAp(
     Ap[(ii)*nx+(jj)] = 
       (s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
       s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii+1)*nx+(jj)])*p[(ii)*nx+(jj)]
-      - s_y[(ii-1)*nx+(jj)]*p[(ii-1)*nx+(jj)]
-      - s_x[(ii)*(nx+1)+(jj-1)]*p[(ii)*nx+(jj-1)] 
+      - s_y[(ii)*nx+(jj)]*p[(ii-1)*nx+(jj)]
+      - s_x[(ii)*(nx+1)+(jj)]*p[(ii)*nx+(jj-1)] 
       - s_x[(ii)*(nx+1)+(jj+1)]*p[(ii)*nx+(jj+1)]
       - s_y[(ii+1)*nx+(jj)]*p[(ii+1)*nx+(jj)];
     sdata[threadIdx.x] = p[(ii)*nx+(jj)]*Ap[(ii)*nx+(jj)];
