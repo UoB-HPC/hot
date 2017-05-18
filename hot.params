@@ -6,5 +6,5 @@ heat_capacity   1.0
 nx              4000
 ny              4000
 iterations      1
-max_inners      10000
+max_inners      1000
 visit_dump      0
