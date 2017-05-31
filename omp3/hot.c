@@ -28,7 +28,6 @@ void solve_diffusion_2d(
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
   for(ii = 0; ii < max_inners; ++ii) {
-
     const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
     const double global_pAp = reduce_all_sum(local_pAp);
     const double alpha = global_old_r2/global_pAp;
@@ -41,6 +40,7 @@ void solve_diffusion_2d(
     // Check if the solution has converged
     if(fabs(global_new_r2) < EPS) {
       global_old_r2 = global_new_r2;
+      printf("Successfully converged.\n");
       break;
     }
 
@@ -51,7 +51,7 @@ void solve_diffusion_2d(
     global_old_r2 = global_new_r2;
   }
 
-  *end_niters = ii;
+  *end_niters = ii+1;
   *end_error = global_old_r2;
 }
 
