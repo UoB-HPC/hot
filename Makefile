@@ -1,10 +1,10 @@
 # User defined parameters
-KERNELS 	  			 = omp3
-COMPILER    			 = INTEL
+KERNELS 	  			 = omp4
+COMPILER    			 = CRAY
 MPI								 = no
 DECOMP						 = TILES
-ARCH_COMPILER_CC   = mpicc
-ARCH_COMPILER_CPP  = mpic++
+ARCH_COMPILER_CC   = cc
+ARCH_COMPILER_CPP  = CC
 OPTIONS		  			 = -DENABLE_PROFILING 
 
 # Compiler-specific flags
@@ -57,7 +57,7 @@ endif
 # Default compiler
 ARCH_LINKER    		= $(ARCH_COMPILER_CC)
 ARCH_FLAGS     		= $(CFLAGS_$(COMPILER))
-ARCH_LDFLAGS   		= $(ARCH_FLAGS) -lm
+ARCH_LDFLAGS   		= $(ARCH_FLAGS) -lm -ldl
 ARCH_BUILD_DIR 		= ../obj/hot/
 ARCH_DIR       		= ..
 
