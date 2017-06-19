@@ -61,14 +61,15 @@ void solve_diffusion_2d(
 
 // Initialises the CG solver
 double initialise_cg(
-    const int nx, const int ny, const double dt, const double heat_capacity, 
+    const int nx, const int ny, const int pad, const double dt, 
+    const double heat_capacity, 
     const double conductivity, double* p, double* r, const double* x, 
     const double* rho, double* s_x, double* s_y, double* reduce_array,
     const double* edgedx, const double* edgedy)
 {
   int nblocks = ceil((nx+1)*ny/(double)NTHREADS);
   calc_s_x<<<nblocks, NTHREADS>>>(
-      nx, ny, dt, heat_capacity, conductivity, s_x, rho, edgedx);
+      nx, ny, pad, dt, heat_capacity, conductivity, s_x, rho, edgedx);
   gpu_check(cudaDeviceSynchronize());
 
   nblocks = ceil(nx*(ny+1)/(double)NTHREADS);

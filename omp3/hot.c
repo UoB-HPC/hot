@@ -19,7 +19,8 @@ void solve_diffusion_2d(
 {
   // Store initial residual
   double local_old_r2 = initialise_cg(
-      nx, ny, dt, heat_capacity, conductivity, p, r, x, rho, s_x, s_y, edgedx, edgedy);
+      nx, ny, mesh->pad, dt, heat_capacity, conductivity, 
+      p, r, x, rho, s_x, s_y, edgedx, edgedy);
   double global_old_r2 = reduce_all_sum(local_old_r2);
 
   handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
@@ -28,11 +29,11 @@ void solve_diffusion_2d(
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
   for(ii = 0; ii < max_inners; ++ii) {
-    const double local_pAp = calculate_pAp(nx, ny, s_x, s_y, p, Ap);
+    const double local_pAp = calculate_pAp(nx, ny, mesh->pad, s_x, s_y, p, Ap);
     const double global_pAp = reduce_all_sum(local_pAp);
     const double alpha = global_old_r2/global_pAp;
 
-    const double local_new_r2 = calculate_new_r2(nx, ny, alpha, x, p, r, Ap);
+    const double local_new_r2 = calculate_new_r2(nx, ny, mesh->pad, alpha, x, p, r, Ap);
     const double global_new_r2 = reduce_all_sum(local_new_r2);
     const double beta = global_new_r2/global_old_r2;
     handle_boundary_2d(nx, ny, mesh, x, NO_INVERT, PACK);
@@ -44,7 +45,7 @@ void solve_diffusion_2d(
       break;
     }
 
-    update_conjugate(nx, ny, beta, r, p);
+    update_conjugate(nx, ny, mesh->pad, beta, r, p);
     handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
 
     // Store the old squared residual
@@ -57,10 +58,10 @@ void solve_diffusion_2d(
 
 // Initialises the CG solver
 double initialise_cg(
-    const int nx, const int ny, const double dt, const double heat_capacity, 
-    const double conductivity, double* p, double* r, const double* x, 
-    const double* rho, double* s_x, double* s_y, const double* edgedx, 
-    const double* edgedy)
+    const int nx, const int ny, const int pad, const double dt, 
+    const double heat_capacity, const double conductivity, double* p, 
+    double* r, const double* x, const double* rho, double* s_x, double* s_y, 
+    const double* edgedx, const double* edgedy)
 {
   START_PROFILING(&compute_profile);
 
@@ -68,17 +69,17 @@ double initialise_cg(
   // Take the average of the coefficients at the cells surrounding 
   // each face
 #pragma omp parallel for
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  for(int ii = pad; ii < ny-pad; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < (nx+1)-PAD; ++jj) {
+    for(int jj = pad; jj < (nx+1)-pad; ++jj) {
       s_x[(ii)*(nx+1)+(jj)] = (dt*conductivity*(rho[(ii)*nx+(jj)]+rho[(ii)*nx+(jj-1)]))/
         (2.0*rho[(ii)*nx+(jj)]*rho[(ii)*nx+(jj-1)]*edgedx[jj]*edgedx[jj]*heat_capacity);
     }
   }
 #pragma omp parallel for
-  for(int ii = PAD; ii < (ny+1)-PAD; ++ii) {
+  for(int ii = pad; ii < (ny+1)-pad; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
+    for(int jj = pad; jj < nx-pad; ++jj) {
       s_y[(ii)*nx+(jj)] = (dt*conductivity*(rho[(ii)*nx+(jj)]+rho[(ii-1)*nx+(jj)]))/
         (2.0*rho[(ii)*nx+(jj)]*rho[(ii-1)*nx+(jj)]*edgedy[ii]*edgedy[ii]*heat_capacity);
     }
@@ -86,9 +87,9 @@ double initialise_cg(
 
   double initial_r2 = 0.0;
 #pragma omp parallel for reduction(+: initial_r2)
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  for(int ii = pad; ii < ny-pad; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
+    for(int jj = pad; jj < nx-pad; ++jj) {
       r[(ii)*nx+(jj)] = x[(ii)*nx+(jj)] -
         ((s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
           s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii+1)*nx+(jj)])*x[(ii)*nx+(jj)]
@@ -107,7 +108,7 @@ double initialise_cg(
 
 // Calculates a value for alpha
 double calculate_pAp(
-    const int nx, const int ny, const double* s_x, const double* s_y,
+    const int nx, const int ny, const int pad, const double* s_x, const double* s_y,
     double* p, double* Ap)
 {
   START_PROFILING(&compute_profile);
@@ -116,9 +117,9 @@ double calculate_pAp(
   // from the 5pt stencil
   double pAp = 0.0;
 #pragma omp parallel for reduction(+: pAp)
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  for(int ii = pad; ii < ny-pad; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
+    for(int jj = pad; jj < nx-pad; ++jj) {
       Ap[(ii)*nx+(jj)] = 
         (s_y[(ii)*nx+(jj)]+s_x[(ii)*(nx+1)+(jj)]+1.0+
          s_x[(ii)*(nx+1)+(jj+1)]+s_y[(ii+1)*nx+(jj)])*p[(ii)*nx+(jj)]
@@ -136,16 +137,17 @@ double calculate_pAp(
 
 // Updates the current guess using the calculated alpha
 double calculate_new_r2(
-    int nx, int ny, double alpha, double* x, double* p, double* r, double* Ap)
+    const int nx, const int ny, const int pad, double alpha, double* x, 
+    double* p, double* r, double* Ap)
 {
   START_PROFILING(&compute_profile);
 
   double new_r2 = 0.0;
 
 #pragma omp parallel for reduction(+: new_r2)
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  for(int ii = pad; ii < ny-pad; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
+    for(int jj = pad; jj < nx-pad; ++jj) {
       x[(ii)*nx+(jj)] += alpha*p[(ii)*nx+(jj)];
       r[(ii)*nx+(jj)] -= alpha*Ap[(ii)*nx+(jj)];
       new_r2 += r[(ii)*nx+(jj)]*r[(ii)*nx+(jj)];
@@ -158,28 +160,17 @@ double calculate_new_r2(
 
 // Updates the conjugate from the calculated beta and residual
 void update_conjugate(
-    const int nx, const int ny, const double beta, const double* r, double* p)
+    const int nx, const int ny, const int pad, const double beta, 
+    const double* r, double* p)
 {
   START_PROFILING(&compute_profile);
 #pragma omp parallel for
-  for(int ii = PAD; ii < ny-PAD; ++ii) {
+  for(int ii = pad; ii < ny-pad; ++ii) {
 #pragma omp simd
-    for(int jj = PAD; jj < nx-PAD; ++jj) {
+    for(int jj = pad; jj < nx-pad; ++jj) {
       p[(ii)*nx+(jj)] = r[(ii)*nx+(jj)] + beta*p[(ii)*nx+(jj)];
     }
   }
   STOP_PROFILING(&compute_profile, "update conjugate");
-}
-
-// Prints the vector to std out
-void print_vec(
-    const int nx, const int ny, double* a)
-{
-  for(int ii = 0; ii < ny; ++ii) {
-    for(int jj = 0; jj < nx; ++jj) {
-      printf("%.3e ", a[ii*nx+jj]);
-    }
-    printf("\n");
-  }
 }
 
