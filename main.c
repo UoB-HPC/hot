@@ -21,9 +21,9 @@ int main(int argc, char** argv)
   const char* hot_params = argv[1];
   mesh.global_nx = get_int_parameter("nx", hot_params);
   mesh.global_ny = get_int_parameter("ny", hot_params);
+  mesh.pad = PAD;
   mesh.local_nx = mesh.global_nx + 2*mesh.pad;
   mesh.local_ny = mesh.global_ny + 2*mesh.pad;
-  mesh.pad = PAD;
   mesh.width = get_double_parameter("width", ARCH_ROOT_PARAMS);
   mesh.height = get_double_parameter("height", ARCH_ROOT_PARAMS);
   mesh.sim_end = get_double_parameter("sim_end", ARCH_ROOT_PARAMS);
