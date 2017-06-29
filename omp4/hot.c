@@ -74,7 +74,7 @@ double initialise_cg(
 #pragma omp target teams distribute parallel for collapse(2) \
   thread_limit(NTHREADS) num_teams(nteams)
 #else
-#pragma omp target teams distribute parallel for collapse(2) 
+#pragma omp target teams distribute parallel for 
 #endif
   for(int ii = pad; ii < ny-pad; ++ii) {
     for(int jj = pad; jj < (nx+1)-pad; ++jj) {
@@ -87,7 +87,7 @@ double initialise_cg(
 #ifdef CLANG
 #pragma omp target teams distribute parallel for collapse(2) thread_limit(NTHREADS) num_teams(nteams)
 #else
-#pragma omp target teams distribute parallel for collapse(2) 
+#pragma omp target teams distribute parallel for
 #endif
   for(int ii = pad; ii < (ny+1)-pad; ++ii) {
     for(int jj = pad; jj < nx-pad; ++jj) {
@@ -103,7 +103,7 @@ double initialise_cg(
 #pragma omp target teams distribute parallel for collapse(2) thread_limit(NTHREADS) \
   num_teams(nteams) map(tofrom:initial_r2) reduction(+: initial_r2)
 #else
-#pragma omp target teams distribute parallel for collapse(2) reduction(+: initial_r2)
+#pragma omp target teams distribute parallel for reduction(+: initial_r2)
 #endif
   for(int ii = pad; ii < ny-pad; ++ii) {
     for(int jj = pad; jj < nx-pad; ++jj) {
@@ -138,7 +138,7 @@ double calculate_pAp(
 #pragma omp target teams distribute parallel for collapse(2) thread_limit(NTHREADS) \
   num_teams(nteams) map(tofrom:pAp) reduction(+: pAp)
 #else
-#pragma omp target teams distribute parallel for collapse(2) reduction(+: pAp)
+#pragma omp target teams distribute parallel for reduction(+: pAp)
 #endif
   for(int ii = pad; ii < ny-pad; ++ii) {
     for(int jj = pad; jj < nx-pad; ++jj) {
@@ -171,7 +171,7 @@ double calculate_new_r2(
 #pragma omp target teams distribute parallel for collapse(2) thread_limit(NTHREADS) \
   num_teams(nteams) map(tofrom: new_r2) reduction(+: new_r2)
 #else
-#pragma omp target teams distribute parallel for collapse(2) reduction(+: new_r2)
+#pragma omp target teams distribute parallel for reduction(+: new_r2)
 #endif
   for(int ii = pad; ii < ny-pad; ++ii) {
     for(int jj = pad; jj < nx-pad; ++jj) {
@@ -197,7 +197,7 @@ void update_conjugate(
 #pragma omp target teams distribute parallel for collapse(2) \
   thread_limit(NTHREADS) num_teams(nteams) 
 #else
-#pragma omp target teams distribute parallel for collapse(2) 
+#pragma omp target teams distribute parallel for 
 #endif
   for(int ii = pad; ii < ny-pad; ++ii) {
     for(int jj = pad; jj < nx-pad; ++jj) {
