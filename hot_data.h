@@ -10,4 +10,3 @@ typedef struct {
 } HotData;
 
 void initialise_hot_data(HotData* hot_data, const char* hot_params);
-
