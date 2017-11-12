@@ -6,36 +6,42 @@
 __global__ void calc_s_x(const int nx, const int ny, const int pad,
                          const double dt, const double heat_capacity,
                          const double conductivity, double* s_x,
-                         const double* rho, const double* edgedx) {
+                         const double* density, const double* edgedx) {
+
   const int gid = threadIdx.x + blockIdx.x * blockDim.x;
   const int jj = (gid % (nx + 1));
   const int ii = (gid / (nx + 1));
   if (ii < pad || jj < pad || jj >= (nx + 1) - pad || ii >= ny - pad)
     return;
   s_x[(ii) * (nx + 1) + (jj)] =
-      (dt * conductivity * (rho[(ii)*nx + (jj)] + rho[(ii)*nx + (jj - 1)])) /
-      (2.0 * rho[(ii)*nx + (jj)] * rho[(ii)*nx + (jj - 1)] * edgedx[jj] *
-       edgedx[jj] * heat_capacity);
+      (dt * conductivity *
+       (density[(ii)*nx + (jj)] + density[(ii)*nx + (jj - 1)])) /
+      (2.0 * density[(ii)*nx + (jj)] * density[(ii)*nx + (jj - 1)] *
+       edgedx[jj] * edgedx[jj] * heat_capacity);
 }
 
 __global__ void calc_s_y(const int nx, const int ny, const int pad,
                          const double dt, const double heat_capacity,
                          const double conductivity, double* s_y,
-                         const double* rho, const double* edgedy) {
+                         const double* density, const double* edgedy) {
+
   const int gid = threadIdx.x + blockIdx.x * blockDim.x;
   const int jj = (gid % (nx));
   const int ii = (gid / (nx));
   if (ii < pad || jj < pad || jj >= nx - pad || ii >= (ny + 1) - pad)
     return;
   s_y[(ii)*nx + (jj)] =
-      (dt * conductivity * (rho[(ii)*nx + (jj)] + rho[(ii - 1) * nx + (jj)])) /
-      (2.0 * rho[(ii)*nx + (jj)] * rho[(ii - 1) * nx + (jj)] * edgedy[ii] *
-       edgedy[ii] * heat_capacity);
+      (dt * conductivity *
+       (density[(ii)*nx + (jj)] + density[(ii - 1) * nx + (jj)])) /
+      (2.0 * density[(ii)*nx + (jj)] * density[(ii - 1) * nx + (jj)] *
+       edgedy[ii] * edgedy[ii] * heat_capacity);
 }
 
 __global__ void calc_initial_r2(const int nx, const int ny, const int pad,
-                                double* s_x, double* s_y, const double* x,
-                                double* p, double* r, double* reduce_array) {
+                                double* s_x, double* s_y,
+                                const double* temperature, double* p, double* r,
+                                double* reduce_array) {
+
   const int gid = threadIdx.x + blockIdx.x * blockDim.x;
   const int jj = (gid % (nx));
   const int ii = (gid / (nx));
@@ -46,14 +52,14 @@ __global__ void calc_initial_r2(const int nx, const int ny, const int pad,
 
   if (ii >= pad && jj >= pad && jj < nx - pad && ii < ny - pad) {
     r[(ii)*nx + (jj)] =
-        x[(ii)*nx + (jj)] -
+        temperature[(ii)*nx + (jj)] -
         ((s_y[(ii)*nx + (jj)] + s_x[(ii) * (nx + 1) + (jj)] + 1.0 +
           s_x[(ii) * (nx + 1) + (jj + 1)] + s_y[(ii + 1) * nx + (jj)]) *
-             x[(ii)*nx + (jj)] -
-         s_y[(ii)*nx + (jj)] * x[(ii - 1) * nx + (jj)] -
-         s_x[(ii) * (nx + 1) + (jj)] * x[(ii)*nx + (jj - 1)] -
-         s_x[(ii) * (nx + 1) + (jj + 1)] * x[(ii)*nx + (jj + 1)] -
-         s_y[(ii + 1) * nx + (jj)] * x[(ii + 1) * nx + (jj)]);
+             temperature[(ii)*nx + (jj)] -
+         s_y[(ii)*nx + (jj)] * temperature[(ii - 1) * nx + (jj)] -
+         s_x[(ii) * (nx + 1) + (jj)] * temperature[(ii)*nx + (jj - 1)] -
+         s_x[(ii) * (nx + 1) + (jj + 1)] * temperature[(ii)*nx + (jj + 1)] -
+         s_y[(ii + 1) * nx + (jj)] * temperature[(ii + 1) * nx + (jj)]);
     p[(ii)*nx + (jj)] = r[(ii)*nx + (jj)];
     sdata[tid] = r[(ii)*nx + (jj)] * r[(ii)*nx + (jj)];
   }
@@ -96,8 +102,8 @@ __global__ void calc_pAp(const int nx, const int ny, const int pad,
 }
 
 __global__ void calc_new_r2(const int nx, const int ny, const int pad,
-                            double alpha, double* x, double* p, double* r,
-                            double* Ap, double* reduce_array) {
+                            double alpha, double* temperature, double* p,
+                            double* r, double* Ap, double* reduce_array) {
   const int gid = threadIdx.x + blockIdx.x * blockDim.x;
   const int jj = (gid % (nx));
   const int ii = (gid / (nx));
@@ -107,7 +113,7 @@ __global__ void calc_new_r2(const int nx, const int ny, const int pad,
   sdata[tid] = 0.0;
 
   if (ii >= pad & jj >= pad && jj < nx - pad && ii < ny - pad) {
-    x[(ii)*nx + (jj)] += alpha * p[(ii)*nx + (jj)];
+    temperature[(ii)*nx + (jj)] += alpha * p[(ii)*nx + (jj)];
     r[(ii)*nx + (jj)] -= alpha * Ap[(ii)*nx + (jj)];
     sdata[threadIdx.x] = r[(ii)*nx + (jj)] * r[(ii)*nx + (jj)];
   }

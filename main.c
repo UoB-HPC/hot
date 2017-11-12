@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     TERMINATE("Usage: ./hot.exe <parameter_filename>\n");
   }
 
-  Mesh mesh = {0};
+  Mesh mesh;
   const char* hot_params = argv[1];
   mesh.global_nx = get_int_parameter("nx", hot_params);
   mesh.global_ny = get_int_parameter("ny", hot_params);
@@ -38,28 +38,27 @@ int main(int argc, char** argv) {
   initialise_comms(&mesh);
   initialise_mesh_2d(&mesh);
 
-  HotData hot_data = {0};
+  HotData hot_data;
   initialise_hot_data(&hot_data, hot_params);
 
-  SharedData shared_data = {0};
-  initialise_shared_data_2d(mesh.global_nx, mesh.global_ny, mesh.local_nx,
-                            mesh.local_ny, mesh.pad, mesh.x_off, mesh.y_off,
-                            mesh.width, mesh.height, hot_params, mesh.edgex,
-                            mesh.edgey, &shared_data);
+  SharedData shared_data;
+  initialise_shared_data_2d(mesh.local_nx, mesh.local_ny, mesh.pad, mesh.width,
+                            mesh.height, hot_params, mesh.edgex, mesh.edgey,
+                            &shared_data);
 
-  handle_boundary_2d(mesh.local_nx, mesh.local_ny, &mesh, shared_data.rho,
+  handle_boundary_2d(mesh.local_nx, mesh.local_ny, &mesh, shared_data.density,
                      NO_INVERT, PACK);
-  handle_boundary_2d(mesh.local_nx, mesh.local_ny, &mesh, shared_data.e,
+  handle_boundary_2d(mesh.local_nx, mesh.local_ny, &mesh, shared_data.energy,
                      NO_INVERT, PACK);
-  handle_boundary_2d(mesh.local_nx, mesh.local_ny, &mesh, shared_data.x,
-                     NO_INVERT, PACK);
+  handle_boundary_2d(mesh.local_nx, mesh.local_ny, &mesh,
+                     shared_data.temperature, NO_INVERT, PACK);
 
   if (visit_dump) {
     write_all_ranks_to_visit(mesh.global_nx + 2 * mesh.pad,
                              mesh.global_ny + 2 * mesh.pad, mesh.local_nx,
                              mesh.local_ny, mesh.pad, mesh.x_off, mesh.y_off,
                              mesh.rank, mesh.nranks, mesh.neighbours,
-                             shared_data.x, "final_result", 0, 0.0);
+                             shared_data.temperature, "final_result", 0, 0.0);
   }
 
   int tt = 0;
@@ -77,8 +76,8 @@ int main(int argc, char** argv) {
     double end_error = 0.0;
     solve_diffusion_2d(mesh.local_nx, mesh.local_ny, &mesh, max_inners, mesh.dt,
                        hot_data.heat_capacity, hot_data.conductivity,
-                       shared_data.x, shared_data.r, shared_data.p,
-                       shared_data.rho, shared_data.s_x, shared_data.s_y,
+                       shared_data.temperature, shared_data.r, shared_data.p,
+                       shared_data.density, shared_data.s_x, shared_data.s_y,
                        shared_data.Ap, &end_niters, &end_error,
                        shared_data.reduce_array0, mesh.edgedx, mesh.edgedy);
 
@@ -98,11 +97,11 @@ int main(int argc, char** argv) {
     }
 
     if (visit_dump) {
-      write_all_ranks_to_visit(mesh.global_nx + 2 * mesh.pad,
-                               mesh.global_ny + 2 * mesh.pad, mesh.local_nx,
-                               mesh.local_ny, mesh.pad, mesh.x_off, mesh.y_off,
-                               mesh.rank, mesh.nranks, mesh.neighbours,
-                               shared_data.x, "result", tt, elapsed_sim_time);
+      write_all_ranks_to_visit(
+          mesh.global_nx + 2 * mesh.pad, mesh.global_ny + 2 * mesh.pad,
+          mesh.local_nx, mesh.local_ny, mesh.pad, mesh.x_off, mesh.y_off,
+          mesh.rank, mesh.nranks, mesh.neighbours, shared_data.temperature,
+          "result", tt, elapsed_sim_time);
     }
   }
 
@@ -116,8 +115,8 @@ int main(int argc, char** argv) {
     write_all_ranks_to_visit(
         mesh.global_nx + 2 * mesh.pad, mesh.global_ny + 2 * mesh.pad,
         mesh.local_nx, mesh.local_ny, mesh.pad, mesh.x_off, mesh.y_off,
-        mesh.rank, mesh.nranks, mesh.neighbours, shared_data.x, "final_result",
-        1, elapsed_sim_time);
+        mesh.rank, mesh.nranks, mesh.neighbours, shared_data.temperature,
+        "final_result", 1, elapsed_sim_time);
   }
 
   finalise_shared_data(&shared_data);
