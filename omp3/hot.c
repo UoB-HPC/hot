@@ -43,7 +43,9 @@ void solve_diffusion_2d(const int nx, const int ny, Mesh* mesh,
     // Check if the solution has converged
     if (fabs(global_new_r2) < EPS) {
       global_old_r2 = global_new_r2;
-      printf("Successfully converged.\n");
+      if(mesh->rank == MASTER) {
+        printf("Successfully converged.\n");
+      }
       break;
     }
 

@@ -69,11 +69,13 @@ double initialise_cg(const int nx, const int ny, const int pad, const double dt,
 
   START_PROFILING(&compute_profile);
 
+  int nteams;
+
 // https://inldigitallibrary.inl.gov/sti/3952796.pdf
 // Take the average of the coefficients at the cells surrounding
 // each face
 #ifdef CLANG
-  int nteams = (int)ceil((nx + 1) * ny / (double)NTHREADS);
+  nteams = (int)ceil((nx + 1) * ny / (double)NTHREADS);
 #pragma omp target teams distribute parallel for collapse(2)                   \
     thread_limit(NTHREADS) num_teams(nteams)
 #else

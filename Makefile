@@ -20,7 +20,7 @@ CFLAGS_CRAY				 = -lrt -hlist=a
 CFLAGS_XL					 = -O3 -qsmp=omp
 CFLAGS_XL_OMP4		 = -qsmp -qoffload
 CFLAGS_CLANG_OMP4  = -O3 -Wall -fopenmp-targets=nvptx64-nvidia-cuda -fopenmp-nonaliased-maps \
-										 -fopenmp=libomp --cuda-path=$(CUDAROOT) -DCLANG
+										 -fopenmp=libomp --cuda-path=$(CUDA_PATH) -DCLANG
 CFLAGS_CLANG			 = -std=gnu99 -fopenmp=libiomp5 -march=native -Wall
 CFLAGS_PGI				 = -O3 -fast -mp
 
@@ -32,8 +32,8 @@ ifeq ($(COMPILER), CLANG_OMP4)
 endif
 
 ifeq ($(CHECK_CUDA_ROOT), yes)
-ifeq ("${CUDAROOT}", "")
-$(error "$$CUDAROOT is not set, please set this to the root of your CUDA install.")
+ifeq ("${CUDA_PATH}", "")
+$(error "$$CUDA_PATH is not set, please set this to the root of your CUDA install.")
 endif
 endif
 

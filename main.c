@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
   for (tt = 0; tt < mesh.niters; ++tt) {
     if (mesh.rank == MASTER) {
-      printf("step %d\n", tt + 1);
+      printf("\nStep %d\n", tt + 1);
     }
 
     double w0 = omp_get_wtime();
@@ -84,14 +84,14 @@ int main(int argc, char** argv) {
     wallclock += omp_get_wtime() - w0;
 
     if (mesh.rank == MASTER) {
-      printf("finished on diffusion iteration %d with error %e\n", end_niters,
+      printf("Finished on diffusion iteration %d with error %e\n", end_niters,
              end_error);
     }
 
     elapsed_sim_time += mesh.dt;
     if (elapsed_sim_time >= mesh.sim_end) {
       if (mesh.rank == MASTER) {
-        printf("reached end of simulation time\n");
+        printf("Reached end of simulation time\n");
       }
       break;
     }

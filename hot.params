@@ -10,4 +10,4 @@ nx              1024
 ny              1024
 iterations      20
 max_inners      1000
-visit_dump      1
+visit_dump      0
