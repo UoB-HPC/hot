@@ -1,10 +1,10 @@
 # User defined parameters
-KERNELS 	  			 = omp4
-COMPILER    			 = CRAY
-MPI								 = no
+KERNELS 	  			 = omp3
+COMPILER    			 = GCC
+MPI								 = yes
 DECOMP						 = TILES
-ARCH_COMPILER_CC   = cc
-ARCH_COMPILER_CPP  = CC
+ARCH_COMPILER_CC   = gcc
+ARCH_COMPILER_CPP  = g++
 OPTIONS		  			 = -DENABLE_PROFILING 
 
 # Compiler-specific flags
