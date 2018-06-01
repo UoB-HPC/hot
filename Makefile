@@ -1,28 +1,28 @@
 # User defined parameters
-KERNELS 	  			 = omp3
-COMPILER    			 = INTEL
+KERNELS 	  			 = cuda
+COMPILER    			 = GCC
 MPI								 = no
 DECOMP						 = TILES
-ARCH_COMPILER_CC   = icc
-ARCH_COMPILER_CPP  = icpc
+ARCH_COMPILER_CC   = gcc
+ARCH_COMPILER_CPP  = g++
 OPTIONS		  			 = -DENABLE_PROFILING 
 
 # Compiler-specific flags
-CFLAGS_INTEL			 = -qopenmp -no-prec-div -std=c11 -DINTEL \
+CFLAGS_INTEL			 = -qopenmp -no-prec-div -std=gnu99 -DINTEL \
 										 -Wall -qopt-report=5 -xCORE-AVX512 -qopt-zmm-usage=high
-CFLAGS_INTEL_KNL	 = -O3 -qopenmp -no-prec-div -std=c11 -DINTEL \
+CFLAGS_INTEL_KNL	 = -O3 -qopenmp -no-prec-div -std=gnu99 -DINTEL \
 										 -xMIC-AVX512 -Wall -qopt-report=5
-CFLAGS_GCC				 = -std=c11 -fopenmp -march=native -Wall
-CFLAGS_GCC_KNL   	 = -O3 -fopenmp -std=c11 \
+CFLAGS_GCC				 = -std=gnu99 -fopenmp -march=native -Wall
+CFLAGS_GCC_KNL   	 = -O3 -fopenmp -std=gnu99 \
 										 -mavx512f -mavx512cd -mavx512er -mavx512pf #-fopt-info-vec-all
-CFLAGS_GCC_POWER   = -O3 -mcpu=power8 -mtune=power8 -fopenmp -std=c11
+CFLAGS_GCC_POWER   = -O3 -mcpu=power8 -mtune=power8 -fopenmp -std=gnu99
 CFLAGS_CRAY				 = -lrt -hlist=a
 CFLAGS_XL					 = -O3 -qsmp=omp
 CFLAGS_XL_OMP4		 = -qsmp -qoffload
 CFLAGS_CLANG_OMP4  = -O3 -Wall -fopenmp-targets=nvptx64-nvidia-cuda \
 										 -fopenmp-nonaliased-maps -fopenmp=libomp \
 										 --cuda-path=$(CUDA_PATH) -DCLANG
-CFLAGS_CLANG			 = -std=c11 -fopenmp=libiomp5 -march=native -Wall
+CFLAGS_CLANG			 = -std=gnu99 -fopenmp=libiomp5 -march=native -Wall
 CFLAGS_PGI				 = -O3 -fast -mp
 
 ifeq ($(KERNELS), cuda)
