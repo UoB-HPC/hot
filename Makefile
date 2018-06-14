@@ -12,7 +12,7 @@ CFLAGS_INTEL			 = -qopenmp -no-prec-div -std=gnu99 -DINTEL \
 										 -Wall -qopt-report=5 #-xhost
 CFLAGS_INTEL_KNL	 = -O3 -qopenmp -no-prec-div -std=gnu99 -DINTEL \
 										 -xMIC-AVX512 -Wall -qopt-report=5
-CFLAGS_GCC				 = -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
+CFLAGS_GCC				 = -O3 -std=gnu99 -fopenmp -march=native -Wall #-std=gnu99
 CFLAGS_GCC_KNL   	 = -O3 -fopenmp -std=gnu99 \
 										 -mavx512f -mavx512cd -mavx512er -mavx512pf #-fopt-info-vec-all
 CFLAGS_GCC_POWER   = -O3 -mcpu=power8 -mtune=power8 -fopenmp -std=gnu99
@@ -22,7 +22,8 @@ CFLAGS_XL_OMP4		 = -qsmp -qoffload
 CFLAGS_CLANG_OMP4  = -O3 -Wall -fopenmp-targets=nvptx64-nvidia-cuda -fopenmp-nonaliased-maps \
 										 -fopenmp=libomp --cuda-path=$(CUDA_PATH) -DCLANG
 CFLAGS_CLANG			 = -std=gnu99 -fopenmp=libiomp5 -march=native -Wall
-CFLAGS_PGI				 = -O3 -fast -mp
+CFLAGS_PGI_NV			 = -fast -acc -ta=tesla:cc60 -Minfo=acc
+CFLAGS_PGI_MC			 = -ta=multicore -fast 
 
 ifeq ($(KERNELS), cuda)
   CHECK_CUDA_ROOT = yes
