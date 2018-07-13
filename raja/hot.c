@@ -4,10 +4,6 @@
 #include "../../raja/shared.h"
 #include "../hot_data.h"
 #include "../hot_interface.h"
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 // Performs the CG solve, you always want to perform these steps, regardless
 // of the context of the problem etc.
@@ -73,7 +69,6 @@ double initialise_cg(const int nx, const int ny, const int pad, const double dt,
 // Take the average of the coefficients at the cells surrounding
 // each face
   RAJA::forall<exec_policy>(RAJA::RangeSegment(pad, ny-pad), [=] RAJA_DEVICE (int ii) {
-#pragma omp simd
     for (int jj = pad; jj < (nx + 1) - pad; ++jj) {
       s_x[(ii) * (nx + 1) + (jj)] =
           (dt * conductivity *
@@ -84,7 +79,6 @@ double initialise_cg(const int nx, const int ny, const int pad, const double dt,
   });
 
   RAJA::forall<exec_policy>(RAJA::RangeSegment(pad, (ny+1)-pad), [=] RAJA_DEVICE (int ii) {
-#pragma omp simd
     for (int jj = pad; jj < nx - pad; ++jj) {
       s_y[(ii)*nx + (jj)] =
           (dt * conductivity *
@@ -125,7 +119,6 @@ double calculate_pAp(const int nx, const int ny, const int pad,
   // from the 5pt stencil
   RAJA::ReduceSum<reduce_policy, double> pAp(0.0);
   RAJA::forall<exec_policy>(RAJA::RangeSegment(pad, ny-pad), [=] RAJA_DEVICE (int ii) {
-//#pragma omp simd
     for (int jj = pad; jj < nx - pad; ++jj) {
       Ap[(ii)*nx + (jj)] =
           (s_y[(ii)*nx + (jj)] + s_x[(ii) * (nx + 1) + (jj)] + 1.0 +
@@ -150,7 +143,6 @@ double calculate_new_r2(const int nx, const int ny, const int pad, double alpha,
 
   RAJA::ReduceSum<reduce_policy, double> new_r2(0.0);
   RAJA::forall<exec_policy>(RAJA::RangeSegment(pad, ny-pad), [=] RAJA_DEVICE (int ii) {
-//#pragma omp simd
     for (int jj = pad; jj < nx - pad; ++jj) {
       temperature[(ii)*nx + (jj)] += alpha * p[(ii)*nx + (jj)];
       r[(ii)*nx + (jj)] -= alpha * Ap[(ii)*nx + (jj)];
@@ -167,7 +159,6 @@ void update_conjugate(const int nx, const int ny, const int pad,
                       const double beta, const double* r, double* p) {
   START_PROFILING(&compute_profile);
   RAJA::forall<exec_policy>(RAJA::RangeSegment(pad, ny-pad), [=] RAJA_DEVICE (int ii) {
-#pragma omp simd
     for (int jj = pad; jj < nx - pad; ++jj) {
       p[(ii)*nx + (jj)] = r[(ii)*nx + (jj)] + beta * p[(ii)*nx + (jj)];
     }
