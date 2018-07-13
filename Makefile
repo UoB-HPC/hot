@@ -4,8 +4,7 @@ COMPILER    			 = GCC
 MPI								 = no
 DECOMP						 = TILES
 ARCH_COMPILER_CC   = gcc
-ARCH_COMPILER_CPP  = g++
-OPTIONS		  			 = -DENABLE_PROFILING 
+OPTIONS		  			 = -DENABLE_PROFILING
 
 # Compiler-specific flags
 CFLAGS_INTEL			 = -qopenmp -no-prec-div -std=gnu99 -DINTEL \
