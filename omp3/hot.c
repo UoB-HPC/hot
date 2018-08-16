@@ -24,8 +24,10 @@ void solve_diffusion_2d(const int nx, const int ny, Mesh* mesh,
                     temperature, density, s_x, s_y, edgedx, edgedy);
   double global_old_r2 = reduce_all_sum(local_old_r2);
 
+  START_PROFILING(&compute_profile);
   handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
   handle_boundary_2d(nx, ny, mesh, temperature, NO_INVERT, PACK);
+  STOP_PROFILING(&compute_profile, "boundary");
 
   // TODO: Can one of the allreduces be removed with kernel fusion?
   int ii = 0;
@@ -38,7 +40,9 @@ void solve_diffusion_2d(const int nx, const int ny, Mesh* mesh,
         calculate_new_r2(nx, ny, mesh->pad, alpha, temperature, p, r, Ap);
     const double global_new_r2 = reduce_all_sum(local_new_r2);
     const double beta = global_new_r2 / global_old_r2;
+    START_PROFILING(&compute_profile);
     handle_boundary_2d(nx, ny, mesh, temperature, NO_INVERT, PACK);
+    STOP_PROFILING(&compute_profile, "boundary");
 
     // Check if the solution has converged
     if (fabs(global_new_r2) < EPS) {
@@ -50,7 +54,9 @@ void solve_diffusion_2d(const int nx, const int ny, Mesh* mesh,
     }
 
     update_conjugate(nx, ny, mesh->pad, beta, r, p);
+    START_PROFILING(&compute_profile);
     handle_boundary_2d(nx, ny, mesh, p, NO_INVERT, PACK);
+    STOP_PROFILING(&compute_profile, "boundary");
 
     // Store the old squared residual
     global_old_r2 = global_new_r2;
